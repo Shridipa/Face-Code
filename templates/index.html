@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceCode | Adaptive AI IDE</title>
+    
+    <!-- CodeMirror Styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    
+    <!-- Application Aesthetics -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <h1>FaceCode <span>Adaptive AI</span></h1>
+        </div>
+        
+        <div class="header-right">
+            <div id="emotion-panel">
+                Status: <span id="emotion-tag">Calm</span>
+            </div>
+            
+            <div class="confidence-container">
+                <div id="confidence-bar">
+                    <div id="confidence-fill"></div>
+                </div>
+                <div id="confidence-label">Engagement: 0%</div>
+            </div>
+            
+            <a href="/dashboard" class="action-btn btn-primary" title="View Analytics Dashboard">
+                📊 Analytics
+            </a>
+        </div>
+    </header>
+
+    <main class="grid-container">
+        <!-- Sidebar -->
+        <section class="left-panel">
+            <div class="glass-card problem-container">
+                <span id="problem-difficulty" class="badge">EASY</span>
+                <h2 id="problem-title">Loading...</h2>
+                <div id="problem-description">Fetching your next challenge...</div>
+            </div>
+
+            <div class="glass-card webcam-container">
+                <video id="webcam" autoplay playsinline></video>
+                <canvas id="telemetry-canvas" style="display:none;"></canvas>
+                <div class="telemetry-overlay">
+                    <span id="cpm-display">⌨️ 0 CPM</span>
+                    <span id="error-rate-display">⚠️ 0% Error</span>
+                </div>
+            </div>
+
+            <div class="glass-card hints-container">
+                <div id="hints-area">
+                    <h3>💡 AI Suggestions</h3>
+                    <ul id="hints-list">
+                        <li>Start by defining the core function...</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Editor Surface -->
+        <section class="right-panel">
+            <div class="glass-card editor-surface">
+                <div class="editor-header">
+                    <div class="tab-title">
+                        <span>main.py</span>
+                    </div>
+                    <div class="controls">
+                        <button id="llm-hint-btn" class="action-btn btn-warning" title="Request specific Gemini hint">
+                            🧠 AI Mentor
+                        </button>
+                        <button id="run-btn" class="action-btn btn-success">
+                            ▶ Run Code
+                        </button>
+                    </div>
+                </div>
+                
+                <textarea id="editor"></textarea>
+                
+                <div class="terminal-output">
+                    <h4>Console Output</h4>
+                    <pre id="output-box">Ready to compile...</pre>
+                </div>
+            </div>
+            
+            <!-- Hidden problem switching footer -->
+            <div id="adaptive-controls" style="margin-top: 12px; display:flex; justify-content:flex-end;">
+                 <button id="next-problem-btn" class="action-btn btn-primary" style="background: var(--accent-cyan); color:#121217;">
+                    Fast Track New Problem →
+                 </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+    "Easy": [
+        {
+            "id": "easy_1",
+            "title": "Two Sum",
+            "description": "Given an array of integers, return indices of the two numbers such that they add up to a specific target.",
+            "hints": [
+                "Can you use a hash map to store complements?",
+                "Brute force is O(n^2), can you do O(n)?"
+            ]
+        },
+        {
+            "id": "easy_2",
+            "title": "Reverse Integer",
+            "description": "Given a signed 32-bit integer x, return x with its digits reversed.",
+            "hints": [
+                "Handle negative numbers separately.",
+                "Watch out for integer overflow!"
+            ]
+        }
+    ],
+    "Medium": [
+        {
+            "id": "med_1",
+            "title": "Longest Substring Without Repeating",
+            "description": "Given a string s, find the length of the longest substring without repeating characters.",
+            "hints": [
+                "Try using a sliding window approach.",
+                "A set can help track characters in the current window."
+            ]
+        },
+        {
+            "id": "med_2",
+            "title": "Container With Most Water",
+            "description": "Given n non-negative integers a1, a2, ..., an , where each represents a point at coordinate (i, ai). Find two lines, which, together with the x-axis forms a container, such that the container contains the most water.",
+            "hints": [
+                "Use two pointers starting at both ends.",
+                "Always move the pointer pointing to the shorter line."
+            ]
+        }
+    ],
+    "Hard": [
+        {
+            "id": "hard_1",
+            "title": "Median of Two Sorted Arrays",
+            "description": "Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.",
+            "hints": [
+                "Can you solve it in O(log(m+n)) time?",
+                "Try binary search on the smaller array."
+            ]
+        },
+        {
+            "id": "hard_2",
+            "title": "Regular Expression Matching",
+            "description": "Given an input string s and a pattern p, implement regular expression matching with support for '.' and '*'.",
+            "hints": [
+                "Dynamic programming is your friend here.",
+                "Consider edge cases with leading '*'."
+            ]
+        }
+    ]
+}

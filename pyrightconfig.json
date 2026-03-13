@@ -1,0 +1,18 @@
+{
+    "venvPath": "c:\\Face_Code",
+    "venv": "venv",
+    "extraPaths": [
+        "c:\\Face_Code\\venv\\Lib\\site-packages",
+        "venv\\Lib\\site-packages",
+        ".",
+        "c:\\Face_Code"
+    ],
+    "include": [
+        "."
+    ],
+    "executionEnvironments": [
+        {
+            "root": "."
+        }
+    ]
+}

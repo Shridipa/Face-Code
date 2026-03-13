@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceCode - Developer Analytics</title>
+    <!-- Dracula CSS mapping for consistency -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .analytics-container {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 20px;
+            height: calc(100vh - 80px); /* Fill space below header */
+            overflow-y: auto;
+        }
+        .chart-card {
+            background-color: #282a36;
+            border: 2px solid #44475a;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .chart-card h3 {
+            margin-top: 0;
+            color: #bd93f9;
+        }
+        
+        .metric-card {
+            background-color: #ff5555;
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            font-size: 1.5rem;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+        canvas {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>FaceCode Analytics 📊</h1>
+        <div>
+            <a href="/" class="action-btn warning" style="text-decoration: none; color: #282a36;">← Back to IDE</a>
+        </div>
+    </header>
+
+    <main class="analytics-container">
+        <!-- 1. Emotion Trend Pie Chart -->
+        <div class="chart-card">
+            <h3>Dominant Expression Profile</h3>
+            <canvas id="emotionChart"></canvas>
+        </div>
+
+        <!-- 2. Completion Rates Bar Chart -->
+        <div class="chart-card">
+            <h3>Problem Executions & Stability</h3>
+            <canvas id="completionChart"></canvas>
+        </div>
+
+        <!-- 3. Confidence over time Line Chart -->
+        <div class="chart-card" style="grid-column: span 2;">
+            <h3>Development Confidence Trends (Last 60 ticks)</h3>
+            <canvas id="confidenceChart" style="max-height: 250px;"></canvas>
+        </div>
+        
+        <!-- 4. Top-level Alert Metrics -->
+        <div class="metric-card" id="confusion-metric" style="grid-column: span 2;">
+            Evaluating Confusion Metrics...
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

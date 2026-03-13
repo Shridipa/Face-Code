@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "c:\\Face_Code\\venv\\Scripts\\python.exe",
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.analysis.extraPaths": [
+        "c:\\Face_Code"
+    ]
+}
