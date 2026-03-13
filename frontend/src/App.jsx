@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Play, Brain, SkipForward, Sun, Moon, CheckCircle,
-  Code2, Terminal as TermIcon, TrendingUp, Zap, List, X, BarChart3
+  Code2, Terminal as TermIcon, TrendingUp, Zap, List, X, BarChart3,
+  LayoutDashboard, Swords, PieChart, Settings, Menu
 } from 'lucide-react';
 import api from './api';
 import './App.css';
@@ -35,7 +36,8 @@ export default function App() {
   const [activeDiff,   setActiveDiff]   = useState('easy'); // which tab
 
   // New features state
-  const [view,          setView]          = useState('workspace'); // workspace | dashboard
+  const [view,          setView]          = useState('dashboard'); // workspace | dashboard | analytics | settings
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const [dbStats,       setDbStats]       = useState({});
   const [negativeTimer, setNegativeTimer] = useState(0); // seconds
   const [showIntervention, setShowIntervention] = useState(false);
@@ -191,57 +193,88 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="logo-group">
+    <div className="app-layout">
+      {/* ── COLLAPSIBLE SIDEBAR ── */}
+      <aside className={`global-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-brand">
           <div className="logo-icon">🧠</div>
-          <span className="logo-name">FaceCode</span>
-          <span className="logo-tag">Adaptive AI</span>
+          {sidebarOpen && <span className="logo-name">FaceCode</span>}
+          <button className="btn-toggle-sidebar" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <Menu size={18} />
+          </button>
         </div>
+        <nav className="sidebar-nav">
+          <button className={`nav-item ${view === 'dashboard' ? 'active' : ''}`} onClick={() => setView('dashboard')} title="Dashboard">
+            <LayoutDashboard size={20}/>
+            {sidebarOpen && <span>Dashboard</span>}
+          </button>
+          <button className={`nav-item ${view === 'workspace' ? 'active' : ''}`} onClick={() => setView('workspace')} title="Challenges">
+            <Swords size={20}/>
+            {sidebarOpen && <span>Challenges</span>}
+          </button>
+          <button className={`nav-item ${view === 'analytics' ? 'active' : ''}`} onClick={() => setView('analytics')} title="Analytics">
+            <PieChart size={20}/>
+            {sidebarOpen && <span>Analytics</span>}
+          </button>
+          <button className={`nav-item ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')} title="Settings">
+            <Settings size={20}/>
+            {sidebarOpen && <span>Settings</span>}
+          </button>
+        </nav>
+      </aside>
 
-        <div className="diff-tabs">
-          {['Easy','Medium','Hard'].map(d => {
-            const key = d.toLowerCase();
-            const isActive = showPanel && activeDiff === key;
-            return (
-              <button
-                key={d}
-                className={`diff-tab ${key} ${(diff === key && !showPanel) || isActive ? 'active' : ''}`}
-                onClick={() => {
-                  if (activeDiff === key && showPanel) {
-                    setShowPanel(false);
-                  } else {
-                    setActiveDiff(key);
-                    setShowPanel(true);
-                  }
-                }}
-              >
-                {d}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="topbar-actions">
-          <div className="telemetry-compact">
-            <span className="tel-item"><Zap size={12} color="var(--warning)"/> {cpm} CPM</span>
-            <span className="tel-item" style={{ color:confColor }}><TrendingUp size={12}/> {confidence}%</span>
+      {/* ── MAIN CONTENT AREA ── */}
+      <div className="main-content-area">
+        <header className="topbar sticky-topbar">
+          <div className="diff-tabs">
+            {['Easy','Medium','Hard'].map(d => {
+              const key = d.toLowerCase();
+              const isActive = showPanel && activeDiff === key;
+              return (
+                <button
+                  key={d}
+                  className={`diff-tab ${key} ${(diff === key && !showPanel && view === 'workspace') || isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    setView('workspace');
+                    if (activeDiff === key && showPanel) {
+                      setShowPanel(false);
+                    } else {
+                      setActiveDiff(key);
+                      setShowPanel(true);
+                    }
+                  }}
+                >
+                  {d}
+                </button>
+              );
+            })}
           </div>
-          <button className="icon-btn" onClick={() => setTheme(theme==='light'?'dark':'light')}>
-            {theme === 'light' ? <Moon size={16}/> : <Sun size={16}/>}
-          </button>
-          <button className={`btn-secondary ${view === 'dashboard' ? 'active' : ''}`} onClick={() => setView(view === 'dashboard' ? 'workspace' : 'dashboard')}>
-             <BarChart3 size={14}/> Dashboard
-          </button>
-          <button className="btn-skip" onClick={skipProblem}>
-            <SkipForward size={13}/> Skip
-          </button>
-        </div>
-      </header>
 
-      {view === 'dashboard' ? (
-        <DashboardView stats={dbStats} liveConfidence={confidence} liveEmotion={emotion} onBack={() => setView('workspace')} />
-      ) : (
+          <div className="topbar-actions">
+            <div className="telemetry-compact tooltip" title="Real-time Performance (CPM & Focus %)">
+              <span className="tel-item"><Zap size={14} color="var(--warning)"/> {cpm} CPM</span>
+              <span className="tel-item" style={{ color:confColor }}><TrendingUp size={14}/> {confidence}%</span>
+            </div>
+            <button className="icon-btn tooltip" title="Toggle Theme" onClick={() => setTheme(theme==='light'?'dark':'light')}>
+              {theme === 'light' ? <Moon size={16}/> : <Sun size={16}/>}
+            </button>
+            <button className="btn-skip tooltip" title="Skip to Next Problem" onClick={skipProblem}>
+              <SkipForward size={14}/> Skip
+            </button>
+          </div>
+        </header>
+
+        {view === 'dashboard' && (
+          <DashboardView stats={dbStats} liveConfidence={confidence} liveEmotion={emotion} onBack={() => setView('workspace')} />
+        )}
+        {(view === 'analytics' || view === 'settings') && (
+          <div className="placeholder-view">
+             <h2>{view === 'analytics' ? 'Advanced Analytics' : 'Platform Settings'}</h2>
+             <p>This module is currently under development. Returning to Dashboard soon.</p>
+             <button className="btn-primary" onClick={() => setView('dashboard')}>Go Back</button>
+          </div>
+        )}
+        {view === 'workspace' && (
         <div className="body-grid" style={{ gridTemplateColumns: showPanel ? '260px 280px 1fr 300px' : '280px 1fr 300px' }}>
         
         {/* LEFT: Overall Stats & Feedback */}
@@ -385,6 +418,7 @@ export default function App() {
           onDecline={() => setShowIntervention(false)} 
         />
       )}
+      </div>
     </div>
   );
 }
