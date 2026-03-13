@@ -33,7 +33,8 @@ const PROGRESS_RINGS = {
 };
 
 export default function AnalyticsDashboardView({ stats }) {
-  const { completions = 0, current_streak = 0, emotion_distribution = {} } = stats || {};
+  const { completions = { total_solved: 0, streak: 0 }, emotion_distribution = {} } = stats || {};
+  const current_streak = completions?.streak || 0;
 
   // Dummy efficiency trend data since we don't have historical points
   const efficiencyData = [
@@ -115,7 +116,7 @@ export default function AnalyticsDashboardView({ stats }) {
             </div>
           </div>
           <div className="streak-stats">
-            <div className="stat-pill"><span className="stat-val">{completions}</span> Total Solved</div>
+            <div className="stat-pill"><span className="stat-val">{completions?.total_solved || 0}</span> Total Solved</div>
             <div className="stat-pill"><span className="stat-val">30</span> 1-Mo Target</div>
           </div>
         </div>

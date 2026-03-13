@@ -12,6 +12,7 @@ import UserJourneyTrend from './components/Analytics';
 import QuestionPanel from './components/QuestionPanel';
 import DashboardView from './components/DashboardView';
 import AnalyticsDashboardView from './components/AnalyticsDashboardView';
+import SettingsView from './components/SettingsView';
 import InterventionModal from './components/InterventionModal';
 
 export default function App() {
@@ -272,11 +273,7 @@ export default function App() {
           <AnalyticsDashboardView stats={dbStats} />
         )}
         {view === 'settings' && (
-          <div className="placeholder-view">
-             <h2>Platform Settings</h2>
-             <p>This module is currently under development. Returning to Dashboard soon.</p>
-             <button className="btn-primary" onClick={() => setView('dashboard')}>Go Back</button>
-          </div>
+          <SettingsView theme={theme} toggleTheme={() => setTheme(theme==='light'?'dark':'light')} onBack={() => setView('dashboard')} />
         )}
         {view === 'workspace' && (
         <div className="body-grid" style={{ gridTemplateColumns: showPanel ? '260px 280px 1fr 300px' : '280px 1fr 300px' }}>
