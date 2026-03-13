@@ -11,6 +11,7 @@ import CodeEditor    from './components/CodeEditor';
 import UserJourneyTrend from './components/Analytics';
 import QuestionPanel from './components/QuestionPanel';
 import DashboardView from './components/DashboardView';
+import AnalyticsDashboardView from './components/AnalyticsDashboardView';
 import InterventionModal from './components/InterventionModal';
 
 export default function App() {
@@ -267,9 +268,12 @@ export default function App() {
         {view === 'dashboard' && (
           <DashboardView stats={dbStats} liveConfidence={confidence} liveEmotion={emotion} onBack={() => setView('workspace')} />
         )}
-        {(view === 'analytics' || view === 'settings') && (
+        {view === 'analytics' && (
+          <AnalyticsDashboardView stats={dbStats} />
+        )}
+        {view === 'settings' && (
           <div className="placeholder-view">
-             <h2>{view === 'analytics' ? 'Advanced Analytics' : 'Platform Settings'}</h2>
+             <h2>Platform Settings</h2>
              <p>This module is currently under development. Returning to Dashboard soon.</p>
              <button className="btn-primary" onClick={() => setView('dashboard')}>Go Back</button>
           </div>
