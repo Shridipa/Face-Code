@@ -38,7 +38,7 @@ export default function App() {
   const [activeDiff,   setActiveDiff]   = useState('easy'); // which tab
 
   // New features state
-  const [view,          setView]          = useState('dashboard'); // workspace | dashboard | analytics | settings
+  const [view,          setView]          = useState('workspace'); // workspace | dashboard | analytics | settings
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const [dbStats,       setDbStats]       = useState({});
   const [negativeTimer, setNegativeTimer] = useState(0); // seconds
