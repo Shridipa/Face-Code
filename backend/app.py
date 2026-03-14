@@ -1,4 +1,5 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import cv2
 import time
 import base64
@@ -21,13 +22,12 @@ app = Flask(__name__)
 # System State
 try:
     print("Loading models...")
-    _emotion_model = load_model("emotion_model.h5")
+    _emotion_model = load_model("emotion_model.h5", compile=False)
     _emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
     # Subset dummy labels for demo if full labels weren't trained properly 
     _dummy_labels = ['angry', 'happy', 'sad']
     
-    cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-    _face_cascade = cv2.CascadeClassifier(cascade_path)
+    _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 except Exception as e:
     print(f"Warning: Model could not be loaded: {e}")
 
