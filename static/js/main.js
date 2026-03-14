@@ -45,6 +45,16 @@ async function initApp() {
 
   // Start Telemetry Tracking Loop
   setInterval(sendTelemetry, TELEMETRY_INTERVAL_MS);
+
+  // Wire up buttons
+  const runBtn = document.getElementById("run-btn");
+  if (runBtn) runBtn.onclick = runCode;
+
+  const mentorBtn = document.getElementById("llm-hint-btn");
+  if (mentorBtn) mentorBtn.onclick = requestLLMHint;
+
+  const nextBtn = document.getElementById("next-problem-btn");
+  if (nextBtn) nextBtn.onclick = fetchNextProblem;
 }
 
 // 2. Fetch New Problem from Flask Adaptive Engine

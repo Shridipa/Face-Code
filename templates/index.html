@@ -11,6 +11,7 @@
     
     <!-- Application Aesthetics -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:,">
 </head>
 <body>
     <header>
@@ -47,7 +48,7 @@
 
             <div class="glass-card webcam-container">
                 <video id="webcam" autoplay playsinline></video>
-                <canvas id="telemetry-canvas" style="display:none;"></canvas>
+                <canvas id="canvas" style="display:none;"></canvas>
                 <div class="telemetry-overlay">
                     <span id="cpm-display">⌨️ 0 CPM</span>
                     <span id="error-rate-display">⚠️ 0% Error</span>
@@ -81,7 +82,7 @@
                     </div>
                 </div>
                 
-                <textarea id="editor"></textarea>
+                <textarea id="code-editor"></textarea>
                 
                 <div class="terminal-output">
                     <h4>Console Output</h4>
