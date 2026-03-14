@@ -1,0 +1,32 @@
+# Ignore all
+*
+
+# Allow only backend-related files
+!adaptive_engine.py
+!app.py
+!coding_problems.json
+!confidence_estimator.py
+!database_manager.py
+!emotion_model.h5
+!error_tracker.py
+!face_detection.py
+!hint_system.py
+!keystroke_logger.py
+!leetcode_fetcher.py
+!llm_integration.py
+!main.py
+!requirements.txt
+!static/
+!templates/
+!data/
+
+# Exclude large local folders
+venv/
+.venv/
+__pycache__/
+frontend/
+.git/
+.vscode/
+*.db
+*.log
+node_modules/
