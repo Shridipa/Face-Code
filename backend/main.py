@@ -113,13 +113,14 @@ async def process_telemetry(data: TelemetryData):
     emotion_found = "neutral"
     
     # 1. Image Processing
-    if data.frame_data:
+    frame_data = data.frame_data
+    if frame_data:
         try:
             # Decode base64
-            if "," in data.frame_data:
-                header, encoded = data.frame_data.split(",", 1)
+            if "," in frame_data:
+                header, encoded = frame_data.split(",", 1)
             else:
-                encoded = data.frame_data
+                encoded = frame_data
                 
             img_bytes = base64.b64decode(encoded)
             nparr = np.frombuffer(img_bytes, np.uint8)

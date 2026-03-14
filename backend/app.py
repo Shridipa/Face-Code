@@ -94,15 +94,18 @@ def process_telemetry():
                 roi = gray[y:y+h, x:x+w]
                 
                 # Predict
-                resized = cv2.resize(roi, (48, 48))
-                reshaped = np.reshape(resized / 255.0, (1, 48, 48, 1))
-                prediction = _emotion_model.predict(reshaped, verbose=0)
-                max_idx = int(np.argmax(prediction))
-                
-                if prediction.shape[1] == 3:
-                    emotion_found = _dummy_labels[max_idx]
+                if _emotion_model:
+                    resized = cv2.resize(roi, (48, 48))
+                    reshaped = np.reshape(resized / 255.0, (1, 48, 48, 1))
+                    prediction = _emotion_model.predict(reshaped, verbose=0)
+                    max_idx = int(np.argmax(prediction))
+                    
+                    if prediction.shape[1] == 3:
+                        emotion_found = _dummy_labels[max_idx]
+                    else:
+                        emotion_found = _emotion_labels[max_idx] if max_idx < len(_emotion_labels) else "neutral"
                 else:
-                    emotion_found = _emotion_labels[max_idx] if max_idx < len(_emotion_labels) else "neutral"
+                    emotion_found = "neutral"
         except Exception as e:
             print(f"Error processing frame: {e}")
 
