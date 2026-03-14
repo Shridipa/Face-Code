@@ -2,6 +2,7 @@ services:
   - type: web
     name: face-code-backend
     runtime: docker
+    dockerContext: backend
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
