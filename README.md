@@ -92,9 +92,6 @@ npm run dev
 
 ---
 
-## 📸 Platform Previews
-*(Insert screenshots of your workspace, dashboard, and settings here)*
-
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome!
 
