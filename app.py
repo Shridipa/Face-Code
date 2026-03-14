@@ -4,7 +4,8 @@ import time
 import base64
 import numpy as np
 from flask import Flask, render_template, request, jsonify
-from tensorflow.keras.models import load_model
+import tf_keras as keras
+from tf_keras.models import load_model
 
 # Project Modules
 from adaptive_engine import AdaptiveEngine

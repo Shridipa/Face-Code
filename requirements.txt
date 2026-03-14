@@ -78,7 +78,7 @@ sniffio
 starlette
 tensorboard
 tensorboard-data-server
-tensorflow==2.15.0
+tensorflow
 termcolor
 tf_keras
 threadpoolctl
