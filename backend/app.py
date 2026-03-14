@@ -17,6 +17,8 @@ from hint_system import RuleBasedHintSystem
 from llm_integration import LLMHintGenerator
 from database_manager import DatabaseManager
 import uuid
+import asyncio
+from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content
 
 app = Flask(__name__)
 CORS(app)
@@ -58,6 +60,24 @@ def index():
 @app.route("/api/start_session", methods=["GET"])
 def start_session():
     """Initializes and returns the first adaptive problem."""
+    try:
+        # Try to get a real LeetCode question for the first session
+        data = asyncio.run(fetch_leetcode_questions(difficulty="EASY", limit=1, skip=0))
+        if data["questions"]:
+            q = data["questions"][0]
+            content = asyncio.run(fetch_question_content(q["titleSlug"]))
+            problem = {
+                "id": q["titleSlug"],
+                "title": q["title"],
+                "difficulty": "easy",
+                "description": content,
+                "tags": q["topicTags"]
+            }
+            return jsonify({"problem": problem})
+    except Exception as e:
+        print(f"Error fetching live question: {e}")
+    
+    # Fallback to local mock data
     problem = engine.select_problem(0.5) # Neutral start
     return jsonify({"problem": problem})
 
@@ -161,7 +181,29 @@ def run_code():
 @app.route("/api/get_next_problem", methods=["POST"])
 def get_next_problem():
     """Triggered explicitly by the UI when the user wants to move on."""
-    # Select using current rolling average confidence
+    try:
+        # Determine target difficulty based on current confidence
+        target_diff = engine.adjust_difficulty(current_confidence).upper()
+        # Fetch a random offset for variety (0 to 100)
+        import random
+        random_skip = random.randint(0, 50)
+        
+        data = asyncio.run(fetch_leetcode_questions(difficulty=target_diff, limit=1, skip=random_skip))
+        if data["questions"]:
+            q = data["questions"][0]
+            content = asyncio.run(fetch_question_content(q["titleSlug"]))
+            problem = {
+                "id": q["titleSlug"],
+                "title": q["title"],
+                "difficulty": target_diff.lower(),
+                "description": content,
+                "tags": q["topicTags"]
+            }
+            return jsonify({"problem": problem})
+    except Exception as e:
+        print(f"Error fetching next live question: {e}")
+
+    # Fallback to mock logic
     new_prob = engine.select_problem(current_confidence)
     return jsonify({"problem": new_prob})
 
@@ -184,21 +226,20 @@ def dashboard():
 @app.route("/api/questions", methods=["GET"])
 def get_questions():
     """
-    Fetches interview questions categorized by difficulty levels.
-    Endpoint: /api/questions?difficulty=easy&page=1&per_page=10
+    Fetches interview questions from LeetCode.
+    Matches frontend params: ?difficulty=easy&limit=20&skip=0
     """
-    difficulty = request.args.get('difficulty')
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 10))
+    difficulty = request.args.get('difficulty', 'easy')
+    limit = int(request.args.get('limit', 20))
+    skip = int(request.args.get('skip', 0))
     
-    questions = db.get_questions(difficulty=difficulty, page=page, per_page=per_page)
-    return jsonify({
-        "status": "success",
-        "count": len(questions),
-        "page": page,
-        "difficulty_filter": difficulty if difficulty else "all",
-        "questions": questions
-    })
+    try:
+        data = asyncio.run(fetch_leetcode_questions(difficulty=difficulty, limit=limit, skip=skip))
+        # Keep total and questions keys to match frontend expectation
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error in /api/questions: {e}")
+        return jsonify({"questions": [], "total": 0, "error": str(e)})
 
 @app.route("/api/analytics_data", methods=["GET"])
 def analytics_data():
