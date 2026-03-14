@@ -70,16 +70,30 @@ export default function App() {
   }, []);
 
   /* ── When user clicks a LeetCode question, load it into the problem card ── */
-  const handleSelectQuestion = useCallback((q) => {
-    setProblem({
-      id:          q.titleSlug,
-      title:       q.title,
-      description: `Difficulty: ${q.difficulty} | Tags: ${q.topicTags.join(', ')}\n\nSolve this LeetCode problem — https://leetcode.com/problems/${q.titleSlug}/`,
-      difficulty:  q.difficulty.toLowerCase(),
-    });
-    setCode(`# ${q.title}\n# https://leetcode.com/problems/${q.titleSlug}/\n\n`);
-    setOutput('New LeetCode problem loaded. Start coding!');
+  const handleSelectQuestion = useCallback(async (q) => {
+    setOutput('📡 Loading full problem description...');
     setOutStatus('idle');
+    try {
+      const res = await api.get(`/api/question/${q.titleSlug}`);
+      setProblem({
+        id:          q.titleSlug,
+        title:       q.title,
+        description: res.data.content || `Difficulty: ${q.difficulty} | No description available.`,
+        difficulty:  q.difficulty.toLowerCase(),
+      });
+      setCode(`# ${q.title}\n# https://leetcode.com/problems/${q.titleSlug}/\n\n`);
+      setOutput('New LeetCode problem loaded. Start coding!');
+    } catch (err) {
+      console.error('Failed to fetch question content:', err);
+      setProblem({
+        id:          q.titleSlug,
+        title:       q.title,
+        description: `Difficulty: ${q.difficulty} | Error loading full description.\n\nSolve it here: https://leetcode.com/problems/${q.titleSlug}/`,
+        difficulty:  q.difficulty.toLowerCase(),
+      });
+      setOutput('⚠️  Loaded without full description.');
+      setOutStatus('error');
+    }
     setHints([]);
     setShowPanel(false);   // collapse panel after selection
   }, []);

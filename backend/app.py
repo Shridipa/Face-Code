@@ -246,5 +246,15 @@ def analytics_data():
     """Fetches structured analytics data from the SQLite DB"""
     return jsonify(db.get_analytics())
 
+@app.route("/api/question/<slug>", methods=["GET"])
+def get_question_content(slug):
+    """Fetches the full HTML description for a specific LeetCode problem."""
+    try:
+        content = asyncio.run(fetch_question_content(slug))
+        return jsonify({"content": content})
+    except Exception as e:
+        print(f"Error fetching question content for {slug}: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
