@@ -5,6 +5,7 @@ import time
 import base64
 import numpy as np
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import tf_keras as keras
 from tf_keras.models import load_model
 
@@ -18,6 +19,7 @@ from database_manager import DatabaseManager
 import uuid
 
 app = Flask(__name__)
+CORS(app)
 
 # Initialize Face Cascade
 _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
