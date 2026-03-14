@@ -19,17 +19,19 @@ import uuid
 
 app = Flask(__name__)
 
-# System State
+# Initialize Face Cascade
+_face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
+# Load Emotion Model
 try:
     print("Loading models...")
     _emotion_model = load_model("emotion_model.h5", compile=False)
-    _emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
-    # Subset dummy labels for demo if full labels weren't trained properly 
-    _dummy_labels = ['angry', 'happy', 'sad']
-    
-    _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 except Exception as e:
     print(f"Warning: Model could not be loaded: {e}")
+    _emotion_model = None
+
+_emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
+_dummy_labels = ['angry', 'happy', 'sad']
 
 # Global Engine States (For Demo Simplicity, mapped out locally)
 # In production, this would be tied to User Session IDs
