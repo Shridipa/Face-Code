@@ -1,19 +1,19 @@
 {
     "venvPath": "c:\\Face_Code",
     "venv": "venv",
-    "extraPaths": [
-        "c:\\Face_Code\\venv\\Lib\\site-packages",
-        "venv\\Lib\\site-packages",
-        "c:\\Face_Code\\backend",
-        "backend",
-        "."
-    ],
     "include": [
-        "."
+        "backend"
     ],
     "executionEnvironments": [
         {
-            "root": "."
+            "root": "backend",
+            "extraPaths": [
+                "."
+            ]
         }
-    ]
+    ],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.10",
+    "pythonPlatform": "Windows"
 }

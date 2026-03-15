@@ -264,4 +264,4 @@ async def get_leetcode_questions(
 if __name__ == "__main__":
     import uvicorn
     # Use string reference and reload=True for better development experience
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
