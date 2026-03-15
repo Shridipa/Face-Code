@@ -27,5 +27,5 @@ COPY . .
 # Expose the port Render expects
 EXPOSE ${PORT}
 
-# Use gunicorn to serve the app
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120"]
+# Start the FastAPI app using uvicorn
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
