@@ -136,7 +136,11 @@ export default function App() {
     setTestResults([]);
     try {
       const tags = problem.tags ? problem.tags.map(t => t.name) : [];
-      const r = await api.post('/api/run_code', { problem_id: problem.id, code, is_submit: false, difficulty: problem.difficulty || 'easy', tags });
+      const r = await api.post('/api/run_code', {
+        problem_id: problem.id, code, is_submit: false,
+        difficulty: problem.difficulty || 'easy', tags,
+        description: problem.description || '',
+      });
       setOutput(r.data.output);
       setOutStatus(r.data.success ? 'success' : 'error');
       setTestResults(r.data.test_results || []);
@@ -161,7 +165,11 @@ export default function App() {
 
     try {
       const tags = problem.tags ? problem.tags.map(t => t.name) : [];
-      const payload = { problem_id: problem.id, code, is_submit: true, difficulty: problem.difficulty || 'easy', tags };
+      const payload = {
+        problem_id: problem.id, code, is_submit: true,
+        difficulty: problem.difficulty || 'easy', tags,
+        description: problem.description || '',
+      };
       const r = await api.post('/api/run_code', payload);
       
       setOutput(r.data.output);

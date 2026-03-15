@@ -74,6 +74,7 @@ class CodeExecutionRequest(BaseModel):
     is_submit: bool = False
     difficulty: str = "easy"
     tags: list[str] = []
+    description: str = ""  # problem HTML for dynamic test extraction
 
 class LLMHintRequest(BaseModel):
     title: str
@@ -159,7 +160,7 @@ async def run_code(req: CodeExecutionRequest):
         duration = time.time() - state.problem_start_time
         
         # Run against real test cases
-        result = run_tests(req.problem_id, req.code)
+        result = run_tests(req.problem_id, req.code, req.description)
         success = result["success"]
 
         print(f"[RunCode] Problem: {req.problem_id} (Diff: {req.difficulty}) | Success: {success} | Runtime: {result['runtime_ms']}ms | Duration: {duration:.1f}s")
