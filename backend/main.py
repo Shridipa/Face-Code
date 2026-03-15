@@ -155,48 +155,34 @@ async def process_telemetry(data: TelemetryData):
 @app.post("/api/run_code")
 async def run_code(req: CodeExecutionRequest):
     try:
-        # Simulated Logic Evaluation
-        code_lower = req.code.lower()
-        has_def = "def " in code_lower
-        has_return = "return " in code_lower
-        large_enough = len(req.code.strip()) > 30
-        
-        success = has_def and has_return and large_enough
+        from code_executor import run_tests
         duration = time.time() - state.problem_start_time
         
-        print(f"[RunCode] Problem: {req.problem_id} (Diff: {req.difficulty}, Tags: {req.tags}) | Success: {success} | Duration: {duration:.1f}s")
-        
+        # Run against real test cases
+        result = run_tests(req.problem_id, req.code)
+        success = result["success"]
+
+        print(f"[RunCode] Problem: {req.problem_id} (Diff: {req.difficulty}) | Success: {success} | Runtime: {result['runtime_ms']}ms | Duration: {duration:.1f}s")
+
         tracker.log_execution(req.problem_id, success)
-        db.log_completion(session_id, req.problem_id, success, duration if success else 0, req.difficulty, req.tags)
-        
-        if success:
-            output = (
-                "✅ All Test Cases Passed!\n"
-                "--------------------------\n"
-                "Test Case 1: [1, 2, 3] -> Succeeded\n"
-                "Test Case 2: [0, -1, 5] -> Succeeded\n"
-                "Test Case 3: Edge Case (Empty) -> Succeeded\n\n"
-                f"Runtime: 12ms | Memory: 14.2MB\n"
-                f"Time taken: {int(duration // 60)}m {int(duration % 60)}s"
-            )
-        else:
-            output = (
-                "❌ Test Cases Failed\n"
-                "--------------------------\n"
-                "Test Case 1: [1, 2, 3] -> FAILED (Incorrect Output)\n"
-                "Error: Logic mismatch or missing function structure.\n\n"
-                "Ensure you have 'def ...' and 'return ...' in your code."
-            )
-        
+        if req.is_submit:
+            db.log_completion(session_id, req.problem_id, success, duration if success else 0, req.difficulty, req.tags)
+
         return {
-            "success": success, 
-            "output": output
+            "success": success,
+            "output": result["output"],
+            "test_results": result.get("test_results", []),
+            "runtime_ms": result.get("runtime_ms", 0),
+            "has_test_cases": result.get("has_test_cases", False),
         }
     except Exception as e:
         print(f"[RunCode] CRITICAL ERROR: {e}")
         return {
             "success": False,
-            "output": f"⚠️ Server Error during evaluation: {str(e)}"
+            "output": f"⚠️ Server Error during evaluation: {str(e)}",
+            "test_results": [],
+            "runtime_ms": 0,
+            "has_test_cases": False,
         }
 
 @app.post("/api/get_next_problem")

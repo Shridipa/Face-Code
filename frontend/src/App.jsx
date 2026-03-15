@@ -30,6 +30,11 @@ export default function App() {
   const [totalSolved,  setTotalSolved]  = useState(0);
   const [avgTime,      setAvgTime]      = useState(0);
 
+  // Test execution state
+  const [testResults,  setTestResults]  = useState([]);
+  const [hasRun,       setHasRun]       = useState(false);
+  const [runtimeMs,    setRuntimeMs]    = useState(null);
+
   // Comparison state
   const [prevMetrics,  setPrevMetrics]  = useState(null); 
 
@@ -73,6 +78,9 @@ export default function App() {
   const handleSelectQuestion = useCallback(async (q) => {
     setOutput('📡 Loading full problem description...');
     setOutStatus('idle');
+    setTestResults([]);
+    setHasRun(false);
+    setRuntimeMs(null);
     try {
       const res = await api.get(`/api/question/${q.titleSlug}`);
       setProblem({
@@ -123,21 +131,32 @@ export default function App() {
   const runCode = async () => {
     if (!problem) return;
     setIsRunning(true);
+    setOutput('⚙️  Running your code against test cases...');
+    setOutStatus('idle');
+    setTestResults([]);
     try {
       const tags = problem.tags ? problem.tags.map(t => t.name) : [];
       const r = await api.post('/api/run_code', { problem_id: problem.id, code, is_submit: false, difficulty: problem.difficulty || 'easy', tags });
       setOutput(r.data.output);
       setOutStatus(r.data.success ? 'success' : 'error');
+      setTestResults(r.data.test_results || []);
+      setRuntimeMs(r.data.runtime_ms ?? null);
+      setHasRun(true);
     } catch {
-      setOutput('⚠️  Execution failed.');
+      setOutput('⚠️  Execution failed. Is the backend running?');
       setOutStatus('error');
     } finally { setIsRunning(false); }
   };
 
   const submitCode = async () => {
     if (!problem) return;
+    if (!hasRun) {
+      setOutput('⚠️  Please click Run first to validate your code before submitting!');
+      setOutStatus('error');
+      return;
+    }
     setIsRunning(true);
-    setOutput('📡 Evaluating and syncing results...');
+    setOutput('📡 Submitting and syncing results...');
     setOutStatus('idle');
 
     try {
@@ -147,18 +166,17 @@ export default function App() {
       
       setOutput(r.data.output);
       setOutStatus(r.data.success ? 'success' : 'error');
+      setTestResults(r.data.test_results || []);
+      setRuntimeMs(r.data.runtime_ms ?? null);
 
       if (r.data.success) {
-        // Record current metrics as "Previous" for the comparison
-        const timeTakenText = r.data.output.match(/Time taken: (.*)/)?.[1] || '0s';
         setPrevMetrics({
           title:   problem.title,
           cpm:     cpm,
           emotion: emotion,
-          time:    timeTakenText
+          time:    `${r.data.runtime_ms ?? '?'}ms`,
         });
-
-        // Immediate transition to next question as requested
+        // Immediate transition to next question
         skipProblem();
       }
     } catch (err) {
@@ -367,7 +385,13 @@ export default function App() {
               <div className="file-tab"><Code2 size={13}/> solution.py</div>
               <div className="toolbar-btns">
                 <button className="btn-secondary" onClick={runCode} disabled={isRunning}><Play size={13}/> Run</button>
-                <button className="btn-primary" onClick={submitCode} disabled={isRunning}>
+                <button
+                  className="btn-primary"
+                  onClick={submitCode}
+                  disabled={isRunning}
+                  title={!hasRun ? 'Run your code first before submitting' : ''}
+                  style={{ opacity: hasRun ? 1 : 0.55 }}
+                >
                   <CheckCircle size={13}/> {isRunning ? 'Processing...' : 'Submit Code'}
                 </button>
               </div>
@@ -384,8 +408,49 @@ export default function App() {
           </div>
 
           <div className="terminal">
-            <div className="terminal-head"><TermIcon size={12}/> Console Output</div>
+            <div className="terminal-head"><TermIcon size={12}/> Console Output
+              {runtimeMs !== null && (
+                <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                  ⚡ {runtimeMs} ms
+                </span>
+              )}
+            </div>
             <div className={`terminal-body ${outStatus}`}>{output}</div>
+
+            {/* Per-test-case result rows */}
+            {testResults.length > 0 && (
+              <div className="test-results-grid">
+                {testResults.map((tc, i) => (
+                  <div
+                    key={i}
+                    className="test-case-row"
+                    style={{
+                      display: 'flex', flexWrap: 'wrap', gap: '4px 12px',
+                      padding: '6px 10px',
+                      borderLeft: `3px solid ${tc.passed ? '#10b981' : '#ef4444'}`,
+                      background: tc.passed ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                      borderRadius: '0 4px 4px 0',
+                      marginTop: 4,
+                      fontSize: '0.72rem',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: tc.passed ? '#10b981' : '#ef4444' }}>
+                      {tc.passed ? '✅' : '❌'} Case {i + 1}
+                    </span>
+                    <span style={{ color: 'var(--text-muted)' }}>{tc.label}</span>
+                    {!tc.passed && (
+                      <>
+                        <span style={{ color: '#f59e0b' }}>Expected: <b>{tc.expected}</b></span>
+                        <span style={{ color: '#ef4444' }}>Got: <b>{tc.got}</b></span>
+                        {tc.error && <span style={{ color: '#ef4444', opacity: 0.8 }}>Err: {tc.error.split('\n').slice(-1)[0]}</span>}
+                      </>
+                    )}
+                    <span style={{ color: 'var(--text-muted)', marginLeft: 'auto' }}>{tc.runtime_ms} ms</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </main>
 
