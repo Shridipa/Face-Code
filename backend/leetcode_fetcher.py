@@ -85,8 +85,12 @@ async def fetch_question_content(title_slug: str) -> dict:
         data = resp.json()
 
     q = data.get("data", {}).get("question", {}) or {}
+    
+    # LeetCode GQL returns HTML in "content"
+    description_html = q.get("content") or q.get("description") or "No description available."
+    
     return {
-        "content":          q.get("content", "No description available."),
+        "description":      description_html,
         "sampleTestCase":   q.get("sampleTestCase", ""),
         "exampleTestcases": q.get("exampleTestcases", ""),
         "codeSnippets":     q.get("codeSnippets", []),

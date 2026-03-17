@@ -89,7 +89,7 @@ export default function PracticePage() {
       setProblem({
         ...q,
         ...fullData,
-        description: fullData.content || 'No description available.',
+        description: fullData.description || fullData.content || 'No description available.',
       });
       setOutput('Full description loaded. Start coding!');
       setOutStatus('success');
@@ -97,7 +97,7 @@ export default function PracticePage() {
       console.error("Error fetching question details:", err);
       setProblem({
         ...q,
-        description: q.content || q.description || 'No description available.'
+        description: q.description || q.content || 'No description available.'
       });
       setOutput('⚠️  Loaded without full description.');
       setOutStatus('error');

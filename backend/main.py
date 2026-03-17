@@ -6,7 +6,7 @@ import base64
 import numpy as np
 import uuid
 from typing import Optional
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -95,9 +95,7 @@ class ScaffoldRequest(BaseModel):
     class Config:
         extra = "allow"
 
-# --- API Endpoints ---
-
-@app.get("/api/start_session")
+@router.get("/start_session")
 async def start_session():
     # Fetch a random Easy LeetCode problem to start
     state.problem_start_time = time.time()
@@ -121,7 +119,7 @@ async def start_session():
         problem = engine.select_problem(0.5)      # Fallback to local
     return {"problem": problem}
 
-@app.post("/api/process_telemetry")
+@router.post("/process_telemetry")
 async def process_telemetry(data: TelemetryData):
     state.active_cpm = data.cpm
     state.is_inactive = data.is_inactive
@@ -169,7 +167,7 @@ async def process_telemetry(data: TelemetryData):
         "auto_hint": auto_hint
     }
 
-@app.post("/api/run_code")
+@router.post("/run_code")
 async def run_code(req: CodeExecutionRequest):
     try:
         from code_executor import run_tests
@@ -207,7 +205,7 @@ async def run_code(req: CodeExecutionRequest):
             "has_test_cases": False,
         }
 
-@app.post("/api/get_next_problem")
+@router.post("/get_next_problem")
 async def get_next_problem():
     state.problem_start_time = time.time()
     # Adaptive logic: determine target difficulty based on confidence
@@ -239,22 +237,22 @@ async def get_next_problem():
         
     return {"problem": problem}
 
-@app.post("/api/request_llm_hint")
+@router.post("/request_llm_hint")
 async def request_llm_hint(req: LLMHintRequest):
     hint = llm_agent.generate_partial_solution(req.title, req.description, req.code)
     return {"hint": hint}
 
-@app.post("/api/generate_scaffold")
+@router.post("/generate_scaffold")
 async def generate_scaffold(req: ScaffoldRequest):
     scaffold = llm_agent.generate_scaffold(req.title, req.description, req.language)
     return {"scaffold": scaffold}
 
-@app.get("/api/analytics_data")
+@router.get("/analytics_data")
 async def get_analytics():
     return db.get_analytics()
 
 
-@app.get("/api/questions")
+@router.get("/questions")
 async def get_leetcode_questions(
     difficulty: str = "easy",
     limit: int = 20,
@@ -276,7 +274,7 @@ async def get_leetcode_questions(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LeetCode API error: {str(e)}")
 
-@app.get("/api/question/{title_slug}")
+@router.get("/question/{title_slug}")
 async def get_question_details(title_slug: str):
     """
     GET /api/question/{title_slug}
@@ -289,6 +287,9 @@ async def get_question_details(title_slug: str):
     except Exception as e:
         print(f"Error fetching question details for {title_slug}: {e}")
         raise HTTPException(status_code=502, detail=str(e))
+
+# Include router
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
