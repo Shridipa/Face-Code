@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
   Play, Brain, SkipForward, CheckCircle,
   Code2, Terminal as TermIcon, TrendingUp, Zap, X,
@@ -85,15 +85,20 @@ export default function PracticePage() {
     setRuntimeMs(null);
     try {
       const res = await api.get(`/api/question/${q.titleSlug}`);
+      const fullData = res.data;
       setProblem({
         ...q,
-        ...res.data,
-        description: res.data.content || 'No description available.',
+        ...fullData,
+        description: fullData.content || 'No description available.',
       });
       setOutput('Full description loaded. Start coding!');
       setOutStatus('success');
-    } catch {
-      setProblem(q);
+    } catch (err) {
+      console.error("Error fetching question details:", err);
+      setProblem({
+        ...q,
+        description: q.content || q.description || 'No description available.'
+      });
       setOutput('⚠️  Loaded without full description.');
       setOutStatus('error');
     }

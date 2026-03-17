@@ -81,6 +81,11 @@ class LLMHintRequest(BaseModel):
     description: str
     code: str
 
+class ScaffoldRequest(BaseModel):
+    title: str
+    description: str
+    language: str
+
 # --- API Endpoints ---
 
 @app.get("/api/start_session")
@@ -94,14 +99,16 @@ async def start_session():
             content = await fetch_question_content(q["titleSlug"])
             problem = {
                 "id": q["titleSlug"],
+                "titleSlug": q["titleSlug"], # Add slug for consistency
                 "title": q["title"],
                 "difficulty": "easy",
-                "description": content,
-                "tags": q["topicTags"]
+                "tags": q["topicTags"],
+                **content # Flatten description, sampleTestCase, codeSnippets, etc.
             }
         else:
             problem = engine.select_problem(0.5)  # Fallback to local
-    except Exception:
+    except Exception as e:
+        print(f"Error starting session: {e}")
         problem = engine.select_problem(0.5)      # Fallback to local
     return {"problem": problem}
 
@@ -204,14 +211,16 @@ async def get_next_problem():
             content = await fetch_question_content(q["titleSlug"])
             problem = {
                 "id": q["titleSlug"],
+                "titleSlug": q["titleSlug"],
                 "title": q["title"],
                 "difficulty": target_difficulty.lower(),
-                "description": content,
-                "tags": q["topicTags"]
+                "tags": q["topicTags"],
+                **content
             }
         else:
             problem = engine.select_problem(state.current_confidence) # Fallback
-    except Exception:
+    except Exception as e:
+        print(f"Error fetching next problem: {e}")
         problem = engine.select_problem(state.current_confidence)     # Fallback
         
     return {"problem": problem}
@@ -220,6 +229,11 @@ async def get_next_problem():
 async def request_llm_hint(req: LLMHintRequest):
     hint = llm_agent.generate_partial_solution(req.title, req.description, req.code)
     return {"hint": hint}
+
+@app.post("/api/generate_scaffold")
+async def generate_scaffold(req: ScaffoldRequest):
+    scaffold = llm_agent.generate_scaffold(req.title, req.description, req.language)
+    return {"scaffold": scaffold}
 
 @app.get("/api/analytics_data")
 async def get_analytics():
@@ -247,6 +261,20 @@ async def get_leetcode_questions(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LeetCode API error: {str(e)}")
+
+@app.get("/api/question/{title_slug}")
+async def get_question_details(title_slug: str):
+    """
+    GET /api/question/{title_slug}
+    Fetches details for a specific LeetCode problem.
+    """
+    try:
+        content = await fetch_question_content(title_slug)
+        # We need to return an object that can be merged with the question list item
+        return content
+    except Exception as e:
+        print(f"Error fetching question details for {title_slug}: {e}")
+        raise HTTPException(status_code=502, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
