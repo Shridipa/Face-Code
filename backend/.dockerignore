@@ -1,32 +1,37 @@
-# Ignore all
-*
-
-# Allow only backend-related files
-!adaptive_engine.py
-!app.py
-!coding_problems.json
-!confidence_estimator.py
-!database_manager.py
-!emotion_model.h5
-!error_tracker.py
-!face_detection.py
-!hint_system.py
-!keystroke_logger.py
-!leetcode_fetcher.py
-!llm_integration.py
-!main.py
-!requirements.txt
-!static/
-!templates/
-!data/
-
-# Exclude large local folders
+# Exclude local environment and cache
 venv/
 .venv/
 __pycache__/
-frontend/
-.git/
+*.py[cod]
+*$py.class
+.env
+.env.*
+!.env.example
+
+# Exclude IDE and system files
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Exclude large data/logs that should be handled by volumes or external storage
 *.db
 *.log
-node_modules/
+telemetry.log
+# metrics.db # Handled by Dockerfile touch and volume
+
+# Exclude other components
+frontend/
+docker-compose.yml
+Dockerfile
+
+# Exclude unnecessary scripts
+test_execution.py
+test_results.txt
+pyrightconfig.json
+setup.ps1
+start_project.bat
+verify_backend.py
+test_endpoint.py
+# prepare_dataset.py # Maybe needed for first run?
+# train_model.py # Not needed in production

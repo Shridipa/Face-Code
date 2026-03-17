@@ -1,0 +1,22 @@
+
+> frontend@0.0.0 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 22 modules transformed.
+
+[31m✗[39m Build failed in 2.38s
+[31merror during build:
+[31m[vite:css] [postcss] C:/Face_Code/frontend/src/App.css:1259:1: Unclosed block[31m
+file: [36mC:/Face_Code/frontend/src/App.css:1259:0[31m
+    at Input.error (C:\Face_Code\frontend\node_modules\postcss\lib\input.js:135:16)
+    at Parser.unclosedBlock (C:\Face_Code\frontend\node_modules\postcss\lib\parser.js:575:22)
+    at Parser.endFile (C:\Face_Code\frontend\node_modules\postcss\lib\parser.js:335:35)
+    at Parser.parse (C:\Face_Code\frontend\node_modules\postcss\lib\parser.js:476:10)
+    at parse (C:\Face_Code\frontend\node_modules\postcss\lib\parse.js:11:12)
+    at new LazyResult (C:\Face_Code\frontend\node_modules\postcss\lib\lazy-result.js:165:16)
+    at Processor.process (C:\Face_Code\frontend\node_modules\postcss\lib\processor.js:53:14)
+    at runPostCSS (file:///C:/Face_Code/frontend/node_modules/vite/dist/node/chunks/config.js:30145:68)
+    at async compilePostCSS (file:///C:/Face_Code/frontend/node_modules/vite/dist/node/chunks/config.js:30129:6)
+    at async compileCSS (file:///C:/Face_Code/frontend/node_modules/vite/dist/node/chunks/config.js:30059:26)[39m

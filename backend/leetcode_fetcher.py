@@ -3,6 +3,7 @@ leetcode_fetcher.py
 Fetches FREE LeetCode problems by difficulty.
 - Over-fetches to compensate for paid-only filtering
 - Returns only free (isPaidOnly=False) questions
+- fetch_question_content now returns a rich dict with content, snippets & test cases
 """
 import httpx
 
@@ -34,16 +35,45 @@ query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $fi
 }
 """
 
+# Extended content query – now fetches code snippets + example test cases
 GQL_CONTENT_QUERY = """
 query questionContent($titleSlug: String!) {
   question(titleSlug: $titleSlug) {
     content
+    sampleTestCase
+    exampleTestcases
+    codeSnippets {
+      lang
+      langSlug
+      code
+    }
+    metaData
   }
 }
 """
 
-async def fetch_question_content(title_slug: str) -> str:
-    """Gets the full HTML content of a problem."""
+# ────────────────────────────────────────────────────────────
+# Language slug map: our UI lang key → LeetCode langSlug
+# ────────────────────────────────────────────────────────────
+LANG_SLUG_MAP = {
+    "python":     "python3",
+    "javascript": "javascript",
+    "typescript": "typescript",
+    "java":       "java",
+    "cpp":        "cpp",
+}
+
+
+async def fetch_question_content(title_slug: str) -> dict:
+    """
+    Gets the full content of a problem.
+    Returns: {
+        content:        str   (HTML description),
+        sampleTestCase: str   (single sample input),
+        exampleTestcases: str (newline-separated inputs),
+        codeSnippets:   list  [{lang, langSlug, code}],
+    }
+    """
     payload = {
         "operationName": "questionContent",
         "query": GQL_CONTENT_QUERY,
@@ -53,7 +83,30 @@ async def fetch_question_content(title_slug: str) -> str:
         resp = await client.post(LEETCODE_GQL, json=payload, headers=HEADERS)
         resp.raise_for_status()
         data = resp.json()
-    return data.get("data", {}).get("question", {}).get("content", "No description available.")
+
+    q = data.get("data", {}).get("question", {}) or {}
+    return {
+        "content":          q.get("content", "No description available."),
+        "sampleTestCase":   q.get("sampleTestCase", ""),
+        "exampleTestcases": q.get("exampleTestcases", ""),
+        "codeSnippets":     q.get("codeSnippets", []),
+    }
+
+
+def get_snippet_for_lang(snippets: list, lang: str) -> str:
+    """
+    Extract the code snippet for the requested language.
+    Falls back to Python3 → any available snippet.
+    """
+    slug = LANG_SLUG_MAP.get(lang.lower(), lang.lower())
+    for s in snippets:
+        if s.get("langSlug") == slug:
+            return s.get("code", "")
+    # Fallback: python3
+    for s in snippets:
+        if s.get("langSlug") == "python3":
+            return s.get("code", "")
+    return snippets[0].get("code", "") if snippets else ""
 
 
 async def fetch_leetcode_questions(

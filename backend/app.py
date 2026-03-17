@@ -6,8 +6,10 @@ import base64
 import numpy as np
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-import tf_keras as keras
-from tf_keras.models import load_model
+
+# Use absolute path for log files regardless of launch directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TELEMETRY_LOG = os.path.join(BASE_DIR, "telemetry.log")
 
 # Project Modules
 from adaptive_engine import AdaptiveEngine
@@ -18,24 +20,21 @@ from llm_integration import LLMHintGenerator
 from database_manager import DatabaseManager
 import uuid
 import asyncio
-from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content
+from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content, get_snippet_for_lang
+from code_executor import run_tests as executor_run_tests
+
+from deepface import DeepFace
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Face Cascade
+# Initialize Face Cascade (Retained for fallback/debugging, DeepFace can also do this)
 _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
-# Load Emotion Model
-try:
-    print("Loading models...")
-    _emotion_model = load_model("emotion_model.h5", compile=False)
-except Exception as e:
-    print(f"Warning: Model could not be loaded: {e}")
-    _emotion_model = None
+# DeepFace will be used directly in the telemetry endpoint.
+# No need for manual model loading here as DeepFace handles its own model management.
 
 _emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral']
-_dummy_labels = ['angry', 'happy', 'sad']
 
 # Global Engine States (For Demo Simplicity, mapped out locally)
 # In production, this would be tied to User Session IDs
@@ -65,13 +64,15 @@ def start_session():
         data = asyncio.run(fetch_leetcode_questions(difficulty="EASY", limit=1, skip=0))
         if data["questions"]:
             q = data["questions"][0]
-            content = asyncio.run(fetch_question_content(q["titleSlug"]))
+            qdata = asyncio.run(fetch_question_content(q["titleSlug"]))
             problem = {
-                "id": q["titleSlug"],
-                "title": q["title"],
-                "difficulty": "easy",
-                "description": content,
-                "tags": q["topicTags"]
+                "id":           q["titleSlug"],
+                "title":        q["title"],
+                "difficulty":   "easy",
+                "description":  qdata["content"],
+                "codeSnippets": qdata["codeSnippets"],
+                "sampleTestCase": qdata["sampleTestCase"],
+                "tags":         q["topicTags"],
             }
             return jsonify({"problem": problem})
     except Exception as e:
@@ -80,6 +81,14 @@ def start_session():
     # Fallback to local mock data
     problem = engine.select_problem(0.5) # Neutral start
     return jsonify({"problem": problem})
+
+@app.route("/api/health")
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "library": "deepface",
+        "labels": _emotion_labels
+    })
 
 @app.route("/api/process_telemetry", methods=["POST"])
 def process_telemetry():
@@ -107,29 +116,25 @@ def process_telemetry():
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            faces = _face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(30, 30))
+            # DeepFace analysis
+            # img is the decoded CV2 image
+            results = DeepFace.analyze(img, actions=['emotion'], enforce_detection=False, silent=True)
             
-            # Grabbing the largest face logic
-            if len(faces) > 0:
-                largest_face = max(faces, key=lambda f: f[2] * f[3])
-                (x, y, w, h) = largest_face
-                roi = gray[y:y+h, x:x+w]
-                
-                # Predict
-                if _emotion_model:
-                    resized = cv2.resize(roi, (48, 48))
-                    reshaped = np.reshape(resized / 255.0, (1, 48, 48, 1))
-                    prediction = _emotion_model.predict(reshaped, verbose=0)
-                    max_idx = int(np.argmax(prediction))
+            with open(TELEMETRY_LOG, "a") as f:
+                ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                if results and len(results) > 0:
+                    # DeepFace returns a list of results (one per face)
+                    res = results[0]
+                    emotion_found = res['dominant_emotion']
+                    confidence = float(res['emotion'][emotion_found] / 100.0) # DeepFace returns percentages
                     
-                    if prediction.shape[1] == 3:
-                        emotion_found = _dummy_labels[max_idx]
-                    else:
-                        emotion_found = _emotion_labels[max_idx] if max_idx < len(_emotion_labels) else "neutral"
+                    f.write(f"[{ts}] DeepFace: Emotion={emotion_found} ({confidence:.2f})\n")
                 else:
-                    emotion_found = "neutral"
+                    f.write(f"[{ts}] DeepFace: No face detected in frame.\n")
         except Exception as e:
-            print(f"Error processing frame: {e}")
+            print(f"Error processing frame with DeepFace: {e}", flush=True)
+            with open(TELEMETRY_LOG, "a") as f:
+                f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] DeepFace Error: {e}\n")
 
     current_emotion = emotion_found
     
@@ -159,23 +164,39 @@ def process_telemetry():
 
 @app.route("/api/run_code", methods=["POST"])
 def run_code():
-    """Simulates code execution tracking."""
+    """
+    Executes user code against test cases via the sandboxed runner.
+    Accepts: problem_id, code, language (python|javascript), description, is_submit
+    Returns: success, output, test_results, runtime_ms, line_markers
+    """
     data = request.json
-    problem_id = data.get('problem_id')
-    code = data.get('code', '')
-    
-    # Simplified Demo Logic: Assume it fails roughly 50% of the time, 
-    # unless code is > 50 characters, then it succeeds.
-    # In a real app, you would pass `code` to a sandboxed execution server (like Docker).
-    success = len(code) > 50 
-    
-    print(f"Executing... Success: {success}")
+    problem_id   = data.get('problem_id', '')
+    code         = data.get('code', '')
+    language     = data.get('language', 'python').lower()
+    description  = data.get('description', '')
+    is_submit    = data.get('is_submit', False)
+
+    # Run against test cases
+    result = executor_run_tests(
+        problem_id=problem_id,
+        user_code=code,
+        description_html=description,
+        language=language,
+    )
+
+    success = result["success"]
+    print(f"[run_code] problem={problem_id} lang={language} passed={success}")
     tracker.log_execution(problem_id, success)
-    db.log_completion(session_id, problem_id, success)
-    
+    if is_submit:
+        db.log_completion(session_id, problem_id, success)
+
     return jsonify({
-        "success": success, 
-        "output": "Code executed successfully!" if success else "Error: Syntax or Compilation Failure."
+        "success":      success,
+        "output":       result["output"],
+        "test_results": result["test_results"],
+        "runtime_ms":   result["runtime_ms"],
+        "line_markers": result.get("line_markers", []),
+        "has_test_cases": result.get("has_test_cases", False),
     })
 
 @app.route("/api/get_next_problem", methods=["POST"])
@@ -191,13 +212,15 @@ def get_next_problem():
         data = asyncio.run(fetch_leetcode_questions(difficulty=target_diff, limit=1, skip=random_skip))
         if data["questions"]:
             q = data["questions"][0]
-            content = asyncio.run(fetch_question_content(q["titleSlug"]))
+            qdata = asyncio.run(fetch_question_content(q["titleSlug"]))
             problem = {
-                "id": q["titleSlug"],
-                "title": q["title"],
-                "difficulty": target_diff.lower(),
-                "description": content,
-                "tags": q["topicTags"]
+                "id":           q["titleSlug"],
+                "title":        q["title"],
+                "difficulty":   target_diff.lower(),
+                "description":  qdata["content"],
+                "codeSnippets": qdata["codeSnippets"],
+                "sampleTestCase": qdata["sampleTestCase"],
+                "tags":         q["topicTags"],
             }
             return jsonify({"problem": problem})
     except Exception as e:
@@ -217,6 +240,17 @@ def request_llm_hint():
     
     hint = llm_agent.generate_partial_solution(prob_title, prob_desc, code)
     return jsonify({"hint": hint})
+
+@app.route("/api/generate_scaffold", methods=["POST"])
+def generate_scaffold():
+    """Generates a boilerplate structure for a problem + language."""
+    data = request.json
+    prob_title = data.get('title', 'Unknown Problem')
+    prob_desc = data.get('description', '')
+    language = data.get('language', 'python')
+    
+    scaffold = llm_agent.generate_scaffold(prob_title, prob_desc, language)
+    return jsonify({"scaffold": scaffold})
 
 @app.route("/dashboard")
 def dashboard():
@@ -248,13 +282,16 @@ def analytics_data():
 
 @app.route("/api/question/<slug>", methods=["GET"])
 def get_question_content(slug):
-    """Fetches the full HTML description for a specific LeetCode problem."""
+    """
+    Fetches the full problem data for a LeetCode slug.
+    Returns: { content, sampleTestCase, exampleTestcases, codeSnippets }
+    """
     try:
-        content = asyncio.run(fetch_question_content(slug))
-        return jsonify({"content": content})
+        qdata = asyncio.run(fetch_question_content(slug))
+        return jsonify(qdata)
     except Exception as e:
         print(f"Error fetching question content for {slug}: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=8001, debug=False)

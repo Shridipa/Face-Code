@@ -1,185 +1,232 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Flame, Clock, Star, Activity, 
-  Target, Cpu, TrendingUp
+  Target, Cpu, TrendingUp, Sparkles
 } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import EngagementGauge from './EngagementGauge';
+import AnimatedCounter from './AnimatedCounter';
 
-const AnimatedNumber = ({ value, suffix = '' }) => {
-  // Initialize to value so it doesn't need a synchronous jump to end if unchanged
-  const [count, setCount] = useState(parseFloat(value) || 0);
-  
-  useEffect(() => {
-    let start = count;
-    const end = parseFloat(value) || 0;
-    if (start === end) {
-      return;
-    }
-    const duration = 1200;
-    let startTime = null;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = timestamp - startTime;
-      const current = Math.min((progress / duration) * end, end);
-      setCount(current);
-      if (progress < duration) requestAnimationFrame(animate);
-      else setCount(end);
-    };
-    requestAnimationFrame(animate);
-  }, [value, count]);
-  
-  // Format based on whether it's an integer or float
-  const displayVal = Number.isInteger(parseFloat(value)) ? Math.floor(count) : count.toFixed(1);
-  return <span className="value">{displayVal}{suffix}</span>;
-};
+const StatCard = ({ icon: Icon, label, value, suffix, colorClass }) => (
+  <motion.div 
+    whileHover={{ y: -5 }}
+    className="fc-card p-6 flex flex-col items-center justify-center text-center gap-2"
+  >
+    <div className={`p-3 rounded-2xl ${colorClass} bg-opacity-10 text-xl mb-2`}>
+      <Icon size={24} className={colorClass.replace('bg-', 'text-')} />
+    </div>
+    <div className="text-3xl font-black text-white">
+      <AnimatedCounter value={value} suffix={suffix} />
+    </div>
+    <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+      {label}
+    </div>
+  </motion.div>
+);
 
 const DashboardView = ({ stats, liveConfidence, liveEmotion }) => {
   const { completions, emotion_distribution, topics } = stats;
 
-  const topicEntries = Object.entries(topics || {}).sort((a,b) => b[1] - a[1]);
-  
-  // Recharts Data config
-  const emotionData = Object.entries(emotion_distribution || {}).map(([name, value]) => ({ name, value }));
-  const COLORS = {
-    happy: '#10b981', neutral: '#8892b0', sad: '#6366f1', 
-    angry: '#ef4444', fear: '#f59e0b', surprise: '#e0b0ff', disgust: '#8b5cf6'
+  // Derive emotion color and label
+  const emotionConfig = {
+    happy: { label: 'Engaged', color: '#22C55E', shadow: 'shadow-green-500/20' },
+    neutral: { label: 'Neutral', color: '#6366F1', shadow: 'shadow-fc-primary/20' },
+    angry: { label: 'Frustrated', color: '#EF4444', shadow: 'shadow-red-500/20' },
+    fear: { label: 'Stressed', color: '#F59E0B', shadow: 'shadow-fc-warning/20' },
+    sad: { label: 'Sad', color: '#6366F1', shadow: 'shadow-fc-primary/20' },
+    surprise: { label: 'Surprised', color: '#8b5cf6', shadow: 'shadow-purple-500/20' },
+    disgust: { label: 'Distracted', color: '#EF4444', shadow: 'shadow-red-500/20' },
   };
-  const EMOJIS = {
-    happy: '🙂', neutral: '😐', sad: '😢', 
-    angry: '😡', fear: '😨', surprise: '😲', disgust: '🤢'
-  };
+
+  const currentEmotion = (liveEmotion || 'neutral').toLowerCase();
+  const e = emotionConfig[currentEmotion] || emotionConfig.neutral;
+
+  // Dummy CPM data for demonstration - in a real app this would come from props history
+  const cpmData = useMemo(() => [
+    { time: '10m', cpm: 25 },
+    { time: '8m', cpm: 45 },
+    { time: '6m', cpm: 38 },
+    { time: '4m', cpm: 52 },
+    { time: '2m', cpm: 60 },
+    { time: 'Now', cpm: Math.max(stats.cpm || 0, 40) },
+  ], [stats.cpm]);
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>FaceCode Analytics 📊</h1>
+    <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8 overflow-y-auto h-full scrollbar-hide">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-3xl flex items-center gap-3">
+          Session Dashboard <Sparkles className="text-fc-warning" size={24} />
+        </h1>
+        <p className="text-gray-500 text-sm font-medium">Real-time health of your coding flow.</p>
       </header>
 
-      {/* Hero Section: Primary Metrics */}
-      <div className="hero-metrics">
-        <div className="glass-card hero-widget">
-          <div className="widget-icon"><Flame size={24} color="var(--warning)"/></div>
-          <div className="widget-info">
-            <AnimatedNumber value={completions?.streak || 0} />
-            <span className="widget-label">Current Streak</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 1️⃣ SESSION OVERVIEW CARD */}
+        <motion.div 
+          className={`lg:col-span-2 fc-card p-8 flex items-center justify-between relative overflow-hidden transition-shadow duration-500 ${e.shadow} shadow-2xl`}
+          animate={{ borderColor: e.color }}
+          transition={{ duration: 1 }}
+        >
+          <div className="flex flex-col gap-6 relative z-10">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Session Health</span>
+              <h2 className="text-2xl font-black">Active Stream</h2>
+            </div>
+            
+            <div className="flex gap-12">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold text-gray-500">Emotion State</span>
+                <motion.div 
+                  key={currentEmotion}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-3 text-xl font-bold"
+                  style={{ color: e.color }}
+                >
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: e.color }} />
+                  {e.label}
+                </motion.div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold text-gray-500">Confidence</span>
+                <div className="text-xl font-bold text-white flex items-center gap-2">
+                   <Target size={16} className="text-fc-primary" /> {liveConfidence || 0}%
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold text-gray-500">Focus Score</span>
+                <div className="text-xl font-bold text-white flex items-center gap-2">
+                   <Activity size={16} className="text-fc-accent" /> {completions?.accuracy || 92}%
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="glass-card hero-widget">
-          <div className="widget-icon"><Star size={24} color="var(--lavender)"/></div>
-          <div className="widget-info">
-            <AnimatedNumber value={completions?.total_solved || 0} />
-            <span className="widget-label">Total Solved</span>
+          
+          <div className="hidden sm:block absolute right-[-20px] top-[-20px] opacity-10 pointer-events-none">
+             <Cpu size={200} />
           </div>
-        </div>
-        <div className="glass-card hero-widget">
-          <div className="widget-icon"><Clock size={24} color="#3b82f6"/></div>
-          <div className="widget-info">
-             <AnimatedNumber value={completions?.avg_time || 0} suffix="s" />
-             <span className="widget-label">Average Time</span>
-          </div>
-        </div>
-        <div className="glass-card hero-widget">
-          <div className="widget-icon"><TrendingUp size={24} color="var(--success)"/></div>
-          <div className="widget-info">
-            <AnimatedNumber value={92} suffix="%" />
-            <span className="widget-label">Efficiency</span>
-          </div>
+
+          {/* Animated Background Glow */}
+          <motion.div 
+            className="absolute right-0 top-0 w-64 h-64 blur-[100px] rounded-full opacity-20 pointer-events-none"
+            animate={{ background: e.color, opacity: [0.1, 0.2, 0.1] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+        </motion.div>
+
+        {/* 4️⃣ ENGAGEMENT GAUGE */}
+        <div className="fc-card p-8 flex items-center justify-center">
+          <EngagementGauge percentage={liveConfidence || 0} emotion={currentEmotion} />
         </div>
       </div>
 
-      <div className="dashboard-grid layout-restructure">
-        {/* Skill & Topic Mastery Heatmap */}
-        <div className="glass-card topic-mastery-panel">
-          <div className="pane-title"><Target size={18} color="var(--teal)"/> Topic Mastery Heatmap</div>
-          {topicEntries.length > 0 ? (
-            <div className="heatmap-grid">
-              {topicEntries.map(([topic, rate]) => {
-                const pct = Math.round(rate * 100);
-                let heatClass = 'heat-weak';
-                if (pct >= 80) heatClass = 'heat-strong';
-                else if (pct >= 50) heatClass = 'heat-moderate';
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 3️⃣ PROBLEM STATS */}
+        <StatCard 
+          icon={Star} 
+          label="Problems Solved" 
+          value={completions?.total_solved || 0} 
+          colorClass="bg-fc-primary" 
+        />
+        <StatCard 
+          icon={Clock} 
+          label="Avg Solve Time" 
+          value={completions?.avg_time || 0} 
+          suffix="s"
+          colorClass="bg-blue-500" 
+        />
+        <StatCard 
+          icon={Flame} 
+          label="Current Streak" 
+          value={completions?.streak || 0} 
+          colorClass="bg-fc-warning" 
+        />
+        <StatCard 
+          icon={TrendingUp} 
+          label="Engagement Score" 
+          value={liveConfidence || 0} 
+          suffix="%"
+          colorClass="bg-fc-accent" 
+        />
+      </div>
 
-                return (
-                  <div key={topic} className={`heatmap-cell ${heatClass}`}>
-                    <span className="heat-topic">{topic}</span>
-                    <span className="heat-score">{pct}%</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* 2️⃣ CPM TREND GRAPH */}
+        <div className="lg:col-span-2 fc-card p-6 flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+             <h3 className="text-lg font-bold flex items-center gap-2"><TrendingUp size={18} className="text-fc-primary"/> Coding Pace (CPM)</h3>
+             <span className="text-[10px] font-bold text-gray-500 uppercase">Live Trend</span>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={cpmData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorCpm" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                <XAxis 
+                  dataKey="time" 
+                  stroke="#6B7280" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  dy={10}
+                />
+                <YAxis 
+                  stroke="#6B7280" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                  label={{ value: 'CPM', angle: -90, position: 'insideLeft', style: { fill: '#6B7280', fontSize: 10, fontWeight: 'bold' } }}
+                />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '12px', fontSize: '12px' }}
+                  itemStyle={{ color: '#6366F1', fontWeight: 'bold' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="cpm" 
+                  stroke="#6366F1" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorCpm)" 
+                  animationDuration={1500}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Topic Breakdown (previously Mastery Panel) */}
+        <div className="fc-card p-6 flex flex-col gap-6 overflow-hidden">
+          <h3 className="text-lg font-bold flex items-center gap-2"><Target size={18} className="text-fc-accent"/> Top Skills</h3>
+          <div className="flex flex-col gap-4">
+             {Object.entries(topics || {}).sort((a,b) => b[1] - a[1]).slice(0, 5).map(([topic, rate]) => (
+               <div key={topic} className="flex flex-col gap-1.5">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-gray-400 capitalize">{topic}</span>
+                    <span className="text-fc-accent">{Math.round(rate * 100)}%</span>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="empty-msg">Waiting for sufficient challenge data...</div>
-          )}
-        </div>
-
-        {/* Secondary Groups: Emotional & Engagement */}
-        <div className="secondary-panels">
-          <div className="glass-card emotion-panel">
-            <div className="pane-title"><Activity size={18} color="var(--lavender)"/> Emotional Profile</div>
-            <div className="recharts-wrapper">
-              {emotionData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={emotionData}
-                      cx="50%" cy="50%"
-                      innerRadius={50} outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {emotionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[entry.name.toLowerCase()] || '#8884d8'} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                 <div className="empty-msg" style={{height: 200, display:'flex', alignItems:'center', justifyContent:'center'}}>No emotion recorded yet</div>
-              )}
-            </div>
-            <div className="emotion-legend">
-               {emotionData.map(e => (
-                 <div key={e.name} className="legend-item">
-                    <span>{EMOJIS[e.name.toLowerCase()] || '❓'}</span>
-                    <span className="legend-lbl">{e.name}</span>
-                 </div>
-               ))}
-            </div>
-          </div>
-
-          <div className="glass-card engagement-panel">
-             <div className="pane-title"><Cpu size={18} color="var(--teal)"/> Engagement Summary</div>
-             
-             <div className="engage-stat">
-                <div className="ind-header">
-                  <span>Live Focus Level</span>
-                  <strong>{liveConfidence || 0}%</strong>
-                </div>
-                <div className="progress-bar tall-bar">
-                  <div className="progress-fill" style={{ width:`${liveConfidence || 0}%`, background:'var(--teal)' }}/>
-                </div>
-             </div>
-
-             <div className="engage-stat mt-4">
-                <div className="ind-header">
-                  <span>Current State</span>
-                  <span className={`state-badge state-${liveEmotion || 'neutral'}`}>
-                    {EMOJIS[(liveEmotion || 'neutral').toLowerCase()] || '😐'} {(liveEmotion || 'neutral').toUpperCase()}
-                  </span>
-                </div>
-             </div>
+                  <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.round(rate * 100)}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full bg-fc-accent bg-opacity-80"
+                    />
+                  </div>
+               </div>
+             ))}
+             {Object.keys(topics || {}).length === 0 && (
+               <div className="text-center py-12 text-sm text-gray-600">No telemetry data found.</div>
+             )}
           </div>
         </div>
       </div>
-
-      <footer className="dashboard-footer text-center">
-        <div className="timestamp">Last Synced: {new Date().toLocaleTimeString()}</div>
-        <div className="branding mt-2">
-           <span className="logo-icon inline-app-icon">🧠</span> FaceCode — Next-Gen Adaptive Learning
-        </div>
-      </footer>
     </div>
   );
 };

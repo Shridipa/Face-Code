@@ -101,6 +101,66 @@ class LLMHintGenerator:
             print(f"[LLMHintGenerator] Groq API ERROR: {e}")
             return "The AI Mentor is currently recalibrating its algorithms. Try again in a moment!"
 
+    def generate_scaffold(self, problem_title: str, problem_description: str, language: str):
+        """
+        Generates a language-specific boilerplate/scaffold for a problem.
+        """
+        if not self.client:
+            return "// AI Scaffold Generator requires GROQ_API_KEY."
+
+        cleaned_description = self.clean_html(problem_description)
+        
+        system_prompt = (
+            f"You are a Senior Software Engineer. Your task is to generate a {language} boilerplate code structure "
+            "for a coding challenge. \n"
+            "STRICT RULES:\n"
+            "1. RETURN ONLY CODE. No explanations, no markdown comments outside code, no 'Here is your scaffold'.\n"
+            "2. DO NOT include triple backticks in the final output string, just the raw code.\n"
+            "3. Ensure the function/class names and parameters are inferred correctly from the problem description.\n"
+            "4. Follow standard conventions for {language} (e.g., CamelCase classes in Python/Java, camelCase functions in JS).\n"
+            "5. If it is a LeetCode-style problem, use a 'Solution' class where appropriate."
+        )
+
+        user_prompt = f"""
+        PROBLEM: {problem_title}
+        DESCRIPTION: {cleaned_description}
+        LANGUAGE: {language}
+
+        GENERATE SCAFFOLD:
+        """
+
+        try:
+            print(f"[LLMHintGenerator] Generating {language} scaffold for: {problem_title}")
+            
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.2, # Lower temperature for better structural consistency
+                max_tokens=500,
+                top_p=1,
+                stream=False
+            )
+            
+            scaffold = completion.choices[0].message.content.strip()
+            
+            # Remove potential markdown wrapping if the model ignores the instruction
+            if scaffold.startswith("```"):
+                lines = scaffold.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                scaffold = "\n".join(lines).strip()
+                
+            return scaffold
+            
+        except Exception as e:
+            print(f"[LLMHintGenerator] Groq Scaffold ERROR: {e}")
+            return f"// Failed to generate {language} scaffold: {e}"
+
 if __name__ == "__main__":
     # Internal test check
     print("--- Training check for Groq Hint Logic ---")

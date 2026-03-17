@@ -4,7 +4,6 @@ services:
     runtime: docker
     dockerContext: backend
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.12
       - key: PORT
-        value: 10000
+        value: 8000
+

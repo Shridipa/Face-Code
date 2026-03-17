@@ -2,9 +2,9 @@
 FROM python:3.10-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT=10000
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
 
 # Install system dependencies for OpenCV and DeepFace
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,8 +24,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the backend code
 COPY . .
 
-# Expose the port Render expects
+# Create an empty database file if it doesn't exist (to avoid mount issues)
+RUN touch metrics.db
+
+# Expose the port
 EXPOSE ${PORT}
 
 # Start the FastAPI app using uvicorn
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
+

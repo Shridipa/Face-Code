@@ -1,202 +1,186 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, ZAxis
+  AreaChart, Area, BarChart, Bar, Cell
 } from 'recharts';
-import { Target, Activity, MoveUpRight, Zap, Target as TargetIcon } from 'lucide-react';
+import { Activity, Clock, History, Brain, MousePointer2 } from 'lucide-react';
+import EmotionHeatmap from './EmotionHeatmap';
+import EmotionTimeline from './EmotionTimeline';
 
 const COLORS = {
-  blue: '#00BFA6',
-  green: '#10b981',
-  yellow: '#f59e0b',
-  red: '#ef4444',
-  purple: '#C3AED6',
-  navy: '#0A192F',
-  white: '#F9FAFB'
+  primary: '#6366F1',
+  accent: '#22C55E',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  purple: '#8B5CF6',
+  border: '#1F2937'
 };
 
-const EMOTION_COLORS = {
-  happy: COLORS.green,
-  neutral: '#8892b0',
-  angry: COLORS.red,
-  sad: COLORS.yellow,
-  fear: COLORS.yellow,
-  surprise: COLORS.purple
-};
-
-const EMOTION_EMOJIS = {
-  happy: '🙂', neutral: '😐', angry: '😡', sad: '😢', fear: '😨', surprise: '😲'
-};
-
-const PROGRESS_RINGS = {
-  circumference: 2 * Math.PI * 40
+const EMOTION_MAP = {
+  happy: { emoji: '😊', label: 'Engaged', color: 'text-fc-accent' },
+  neutral: { emoji: '😐', label: 'Neutral', color: 'text-gray-400' },
+  angry: { emoji: '😡', label: 'Angry', color: 'text-fc-danger' },
+  sad: { emoji: '😢', label: 'Sad', color: 'text-blue-400' },
+  fear: { emoji: '😨', label: 'Stressed', color: 'text-fc-warning' },
+  surprise: { emoji: '😲', label: 'Surprised', color: 'text-purple-400' },
 };
 
 export default function AnalyticsDashboardView({ stats }) {
-  const { completions = { total_solved: 0, streak: 0 }, emotion_distribution = {} } = stats || {};
-  const current_streak = completions?.streak || 0;
+  const { completions = { history: [] } } = stats || {};
 
-  // Dummy efficiency trend data since we don't have historical points
-  const efficiencyData = [
-    { name: 'Mon', completionTime: 45, accuracy: 80 },
-    { name: 'Tue', completionTime: 40, accuracy: 82 },
-    { name: 'Wed', completionTime: 38, accuracy: 85 },
-    { name: 'Thu', completionTime: 35, accuracy: 90 },
-    { name: 'Fri', completionTime: 30, accuracy: 95 },
+  // Mock engagement data
+  const engagementData = [
+    { time: '10:00', focus: 75, engagement: 60, frustration: 10 },
+    { time: '10:15', focus: 85, engagement: 80, frustration: 5 },
+    { time: '10:30', focus: 90, engagement: 85, frustration: 2 },
+    { time: '10:45', focus: 70, engagement: 75, frustration: 20 },
+    { time: '11:00', focus: 95, engagement: 90, frustration: 0 },
   ];
 
-  const emotionData = useMemo(() => {
-    return Object.entries(emotion_distribution).map(([key, val]) => ({
-      name: key,
-      value: val,
-      fill: EMOTION_COLORS[key] || EMOTION_COLORS.neutral,
-      emoji: EMOTION_EMOJIS[key] || '😐'
-    })).sort((a,b) => b.value - a.value);
-  }, [emotion_distribution]);
+  // Mock solve time data
+  const solveTimeData = [
+    { name: 'Two Sum', time: 68, difficulty: 'Easy' },
+    { name: 'Island Count', time: 120, difficulty: 'Medium' },
+    { name: 'LRU Cache', time: 340, difficulty: 'Hard' },
+    { name: 'Bin Search', time: 45, difficulty: 'Easy' },
+    { name: 'Merge Lists', time: 85, difficulty: 'Easy' },
+  ];
 
-  const streakPercent = Math.min((current_streak / 30) * 100, 100);
-  const ringOffset = PROGRESS_RINGS.circumference - (streakPercent / 100) * PROGRESS_RINGS.circumference;
+  // Problem history timeline data (from stats or fallback)
+  const history = completions.history?.length > 0 ? completions.history : [
+    { title: 'Two Sum', time: 68, emotion: 'happy', difficulty: 'Easy', date: '2 mins ago' },
+    { title: 'Longest Substring', time: 120, emotion: 'neutral', difficulty: 'Medium', date: '15 mins ago' },
+    { title: 'Binary Search', time: 45, emotion: 'happy', difficulty: 'Easy', date: '1 hour ago' },
+    { title: 'Three Sum', time: 310, emotion: 'fear', difficulty: 'Medium', date: 'Yesterday' },
+  ];
 
   return (
-    <div className="analytics-container fade-in">
-      <div className="analytics-header">
-        <h2>Advanced Analytics</h2>
-        <p className="subtitle">Deep Dive into Your Learning Patterns</p>
+    <div className="p-8 max-w-7xl mx-auto flex flex-col gap-8 h-full overflow-y-auto scrollbar-hide">
+      <header className="flex flex-col gap-1">
+        <h2 className="text-3xl flex items-center gap-3">
+          Performance Insights <Brain className="text-fc-primary" size={24} />
+        </h2>
+        <p className="text-gray-500 text-sm font-medium">Historical analysis of your coding behavior and performance.</p>
+      </header>
+
+      {/* 1️⃣ ENGAGEMENT TRENDS */}
+      <div className="fc-card p-6 flex flex-col gap-8">
+        <div className="flex justify-between items-center">
+           <div className="flex flex-col gap-1">
+             <h3 className="text-lg font-bold flex items-center gap-2"><Activity size={18} className="text-fc-primary" /> Engagement Trends</h3>
+             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Focus vs Frustration</span>
+           </div>
+           <div className="flex gap-4">
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-fc-primary"/> <span className="text-[10px] font-bold text-gray-400">Focus</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-fc-danger"/> <span className="text-[10px] font-bold text-gray-400">Frustration</span></div>
+           </div>
+        </div>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={engagementData}>
+              <defs>
+                <linearGradient id="colorFocus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorFrustration" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={COLORS.danger} stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor={COLORS.danger} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+              <XAxis dataKey="time" stroke="#6B7280" fontSize={10} axisLine={false} tickLine={false} dy={10} />
+              <YAxis stroke="#6B7280" fontSize={10} axisLine={false} tickLine={false} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '12px', fontSize: '12px' }}
+                itemStyle={{ fontSize: '12px' }}
+              />
+              <Area type="monotone" dataKey="focus" stroke={COLORS.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorFocus)" />
+              <Area type="monotone" dataKey="frustration" stroke={COLORS.danger} strokeWidth={2} fillOpacity={1} fill="url(#colorFrustration)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
-      <div className="analytics-grid">
-        
-        {/* EFFICIENCY TRENDS */}
-        <div className="analytics-card efficiency-panel">
-          <div className="card-header">
-            <h3>Efficiency Trends</h3>
-            <Activity size={18} color={COLORS.blue} />
-          </div>
-          <p className="card-desc">Time vs Accuracy over the last 5 active days.</p>
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={efficiencyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="#8892b0" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="left" stroke="#8892b0" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="right" orientation="right" stroke="#8892b0" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(10, 25, 47, 0.9)', border: '1px solid rgba(0,191,166,0.3)', borderRadius: '8px' }}
-                  itemStyle={{ color: COLORS.white }}
-                />
-                <Line yAxisId="left" type="monotone" dataKey="completionTime" name="Time (mins)" stroke={COLORS.blue} strokeWidth={3} dot={{ r: 4, fill: COLORS.navy, stroke: COLORS.blue, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                <Line yAxisId="right" type="monotone" dataKey="accuracy" name="Accuracy (%)" stroke={COLORS.purple} strokeWidth={3} dot={{ r: 4, fill: COLORS.navy, stroke: COLORS.purple, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 2️⃣ EMOTION HEATMAP */}
+        <div className="fc-card p-6 flex flex-col gap-8">
+           <h3 className="text-lg font-bold flex items-center gap-2"><MousePointer2 size={18} className="text-fc-accent" /> Emotion Heatmap</h3>
+           <EmotionHeatmap />
         </div>
 
-        {/* STREAK RING */}
-        <div className="analytics-card streak-panel">
-          <div className="card-header">
-            <h3>Streak Analysis</h3>
-            <Zap size={18} color={COLORS.yellow} />
-          </div>
-          <div className="streak-circle-wrapper">
-            <svg className="radial-chart-svg" viewBox="0 0 100 100" style={{ height: '200px' }}>
-              <circle className="radial-bg" cx="50" cy="50" r="40" />
-              <circle 
-                className="radial-fill progress-ring-circle" 
-                cx="50" cy="50" r="40" 
-                style={{ 
-                  strokeDasharray: PROGRESS_RINGS.circumference,
-                  strokeDashoffset: ringOffset,
-                  stroke: COLORS.yellow
-                }} 
-              />
-            </svg>
-            <div className="ring-label-center">
-              <span className="big-num">{current_streak}</span>
-              <span className="small-txt">Days</span>
-            </div>
-          </div>
-          <div className="streak-stats">
-            <div className="stat-pill"><span className="stat-val">{completions?.total_solved || 0}</span> Total Solved</div>
-            <div className="stat-pill"><span className="stat-val">30</span> 1-Mo Target</div>
+        {/* 3️⃣ SOLVE TIMES */}
+        <div className="fc-card p-6 flex flex-col gap-8">
+          <h3 className="text-lg font-bold flex items-center gap-2"><Clock size={18} className="text-purple-400" /> Solve Time vs Difficulty</h3>
+          <div className="h-64 w-full">
+             <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={solveTimeData}>
+                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                   <XAxis dataKey="name" stroke="#6B7280" fontSize={10} axisLine={false} tickLine={false} />
+                   <YAxis stroke="#6B7280" fontSize={10} axisLine={false} tickLine={false} label={{ value: 'Seconds', angle: -90, position: 'insideLeft', style: { fill: '#6B7280', fontSize: 10 } }} />
+                   <Tooltip 
+                    cursor={{fill: 'rgba(255,255,255,0.05)'}}
+                    contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '12px', fontSize: '12px' }}
+                   />
+                   <Bar dataKey="time" radius={[4, 4, 0, 0]}>
+                      {solveTimeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.difficulty === 'Hard' ? COLORS.danger : (entry.difficulty === 'Medium' ? COLORS.warning : COLORS.accent)} />
+                      ))}
+                   </Bar>
+                </BarChart>
+             </ResponsiveContainer>
           </div>
         </div>
+      </div>
 
-        {/* EMOTIONAL PROFILE */}
-        <div className="analytics-card emotion-panel-alt">
-          <div className="card-header">
-            <h3>Emotional Insights</h3>
-            <TargetIcon size={18} color={COLORS.purple} />
-          </div>
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={200}>
-               <PieChart>
-                 <Pie
-                    data={emotionData}
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                 >
-                   {emotionData.map((ent, idx) => (
-                     <Cell key={`cell-${idx}`} fill={ent.fill} />
-                   ))}
-                 </Pie>
-                 <Tooltip 
-                    formatter={(val, name, props) => [`${val}%`, props.payload.emoji + ' ' + name]} 
-                    contentStyle={{ backgroundColor: 'rgba(10, 25, 47, 0.9)', border: `1px solid ${COLORS.purple}`, borderRadius: '8px' }}
-                 />
-               </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="emotion-legend">
-            {emotionData.map((e, idx) => (
-              <div key={idx} className="legend-item" style={{ borderColor: e.fill }}>
-                <span>{e.emoji}</span> <span className="legend-lbl">{e.name}</span>
-              </div>
-            ))}
-          </div>
+      {/* 4️⃣ PROBLEM COMPLETION HISTORY */}
+      <div className="fc-card p-6 flex flex-col gap-6 mb-8">
+        <h3 className="text-lg font-bold flex items-center gap-2"><History size={18} className="text-fc-primary" /> Completion Timeline</h3>
+        <div className="flex flex-col gap-4 overflow-y-auto max-h-96 pr-2">
+           {history.map((item, idx) => {
+             const e = EMOTION_MAP[item.emotion?.toLowerCase()] || EMOTION_MAP.neutral;
+             return (
+               <div key={idx} className="flex items-center justify-between p-4 bg-gray-800 bg-opacity-40 rounded-xl border border-fc-border hover:border-gray-600 transition-colors group">
+                  <div className="flex items-center gap-4">
+                     <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-900 border border-gray-700 text-xl">
+                        {e.emoji}
+                     </div>
+                     <div className="flex flex-col">
+                        <span className="font-bold text-white group-hover:text-fc-primary transition-colors">{item.title}</span>
+                        <div className="flex items-center gap-2 text-[10px] font-medium text-gray-500 uppercase tracking-widest">
+                           <span className={item.difficulty === 'Hard' ? 'text-fc-danger' : (item.difficulty === 'Medium' ? 'text-fc-warning' : 'text-fc-accent')}>{item.difficulty}</span>
+                           <span>•</span>
+                           <span>{item.time}s solve</span>
+                           <span>•</span>
+                           <span className={e.color}>{e.label}</span>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="text-xs font-medium text-gray-500">
+                     {item.date}
+                  </div>
+               </div>
+             );
+           })}
         </div>
+      </div>
 
-        {/* ENGAGEMENT SUMMARY */}
-        <div className="analytics-card engagement-summary">
-          <div className="card-header">
-            <h3>Area Engagement</h3>
-            <MoveUpRight size={18} color={COLORS.green} />
-          </div>
-          <div className="engagement-bars">
-            <div className="engage-stat">
-              <div className="ind-header">
-                <span className="ind-label">Sustained Focus</span>
-                <strong>High (85%)</strong>
-              </div>
-              <div className="ind-bar tall-bar">
-                <div className="ind-fill" style={{ width: '85%', background: COLORS.blue }}></div>
-              </div>
-            </div>
-            
-            <div className="engage-stat">
-              <div className="ind-header">
-                <span className="ind-label">Emotional Stability</span>
-                <strong>Moderate (60%)</strong>
-              </div>
-              <div className="ind-bar tall-bar">
-                <div className="ind-fill" style={{ width: '60%', background: COLORS.purple }}></div>
-              </div>
-            </div>
-            
-            <div className="engage-stat">
-              <div className="ind-header">
-                <span className="ind-label">Cognitive Load</span>
-                <strong>Optimal (40%)</strong>
-              </div>
-              <div className="ind-bar tall-bar">
-                <div className="ind-fill" style={{ width: '40%', background: COLORS.green }}></div>
-              </div>
-            </div>
-          </div>
+      {/* Emotion Journey Timeline */}
+      <div style={{
+        background: 'var(--glass, rgba(255,255,255,0.03))',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 16,
+        padding: '1.5rem',
+        marginTop: '1.5rem',
+      }}>
+        <div className="pane-title" style={{ marginBottom: '1.4rem' }}>
+          <span style={{ fontSize: '1.2rem' }}>🧭</span>
+          Session Emotion Journey
         </div>
-
+        <p style={{ fontSize: '0.8rem', color: '#8b949e', marginBottom: '1.2rem' }}>
+          A timeline of your emotional state during the last coding session. Milestone events are marked.
+        </p>
+        <EmotionTimeline />
       </div>
     </div>
   );

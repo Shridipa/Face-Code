@@ -1,1 +1,33 @@
-body { margin: 0; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-fc-bg text-gray-200 font-sans antialiased;
+    margin: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-white font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  .fc-card {
+    @apply bg-fc-card border border-fc-border rounded-xl shadow-lg backdrop-blur-sm;
+  }
+
+  .fc-btn-primary {
+    @apply bg-fc-primary hover:bg-opacity-90 text-white font-bold py-2 px-4 rounded-lg transition-all active:scale-95;
+  }
+
+  .fc-btn-secondary {
+    @apply bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all active:scale-95;
+  }
+}
+
+
+/* Global Scrollbar Hiding */
+*::-webkit-scrollbar { display: none !important; }
+* { -ms-overflow-style: none !important; scrollbar-width: none !important; }

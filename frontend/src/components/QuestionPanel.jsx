@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
+import { Search, Filter, Book } from 'lucide-react';
 
 const DIFF_COLOR = {
   EASY:   { bg: 'rgba(16,185,129,0.1)',  text: '#10b981', border: 'rgba(16,185,129,0.25)' },
@@ -9,21 +10,25 @@ const DIFF_COLOR = {
 
 const TAG_COLORS = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'];
 
-export default function QuestionPanel({ selectedDiff, onSelectQuestion }) {
+export default function QuestionPanel({ onSelectQuestion }) {
   const [questions, setQuestions] = useState([]);
   const [total,     setTotal]     = useState(0);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState(null);
   const [page,      setPage]      = useState(0);
+  const [search,    setSearch]    = useState('');
+  const [difficulty, setDifficulty] = useState('ALL');
   const PER_PAGE = 20;
 
-  const load = useCallback(async (diff, pageNum) => {
+  const load = useCallback(async (diff, pageNum, query) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/api/questions', {
-        params: { difficulty: diff, limit: PER_PAGE, skip: pageNum * PER_PAGE }
-      });
+      const p = { limit: PER_PAGE, skip: pageNum * PER_PAGE };
+      if (diff !== 'ALL') p.difficulty = diff.toUpperCase();
+      if (query) p.search = query;
+
+      const res = await api.get('/api/questions', { params: p });
       setQuestions(res.data.questions ?? []);
       setTotal(res.data.total ?? 0);
     } catch (e) {
@@ -33,41 +38,61 @@ export default function QuestionPanel({ selectedDiff, onSelectQuestion }) {
     }
   }, []);
 
-  // Re-fetch when difficulty tab or page changes
+  // Re-fetch when difficulty tab, page, or search changes
   useEffect(() => {
-    setPage(0);
-    setQuestions([]);
-  }, [selectedDiff]);
+    const timer = setTimeout(() => {
+      setPage(0);
+      load(difficulty, 0, search);
+    }, 400); // Debounce search
+    return () => clearTimeout(timer);
+  }, [difficulty, search, load]);
 
   useEffect(() => {
-    load(selectedDiff, page);
-  }, [selectedDiff, page, load]);
+    if (page > 0) load(difficulty, page, search);
+  }, [page, load, difficulty, search]);
 
   const totalPages = Math.ceil(total / PER_PAGE);
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
-
-      {/* Header strip */}
-      <div style={{
-        padding:'10px 16px', borderBottom:'1px solid var(--border)',
-        display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0
-      }}>
-        <div>
-          <span style={{ fontWeight:700, fontSize:'0.85rem' }}>LeetCode Problems</span>
-          {total > 0 && (
-            <span style={{ fontSize:'0.7rem', color:'var(--text-muted)', marginLeft:8 }}>
-              {total} {selectedDiff.toLowerCase()} questions
-            </span>
-          )}
+    <div className="question-panel h-full flex flex-col overflow-hidden bg-gray-950 border-r border-gray-800">
+      
+      {/* Header */}
+      <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-900/40">
+        <div className="flex items-center gap-2">
+          <Book size={16} className="text-fc-primary" />
+          <span className="font-bold text-sm tracking-tight">LeetCode Library</span>
         </div>
-        {loading && (
-          <div style={{
-            width:14, height:14, border:'2px solid var(--primary)',
-            borderTopColor:'transparent', borderRadius:'50%',
-            animation:'spin 0.7s linear infinite'
-          }}/>
-        )}
+        {loading && <div className="loader-mini" />}
+      </div>
+
+      {/* Search & Filter */}
+      <div className="p-3 border-b border-gray-800 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
+          <input
+            type="text"
+            placeholder="Search problems..."
+            className="w-full bg-gray-900 border border-gray-800 rounded-lg py-1.5 pl-9 pr-4 text-xs focus:border-fc-primary focus:ring-1 focus:ring-fc-primary outline-none transition-all"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex gap-1">
+          {['ALL', 'EASY', 'MEDIUM', 'HARD'].map(d => (
+            <button
+              key={d}
+              onClick={() => setDifficulty(d)}
+              className={`flex-1 py-1 text-[10px] font-bold rounded-md border transition-all ${
+                difficulty === d 
+                  ? 'bg-fc-primary/10 border-fc-primary text-fc-primary' 
+                  : 'bg-transparent border-gray-800 text-gray-500 hover:border-gray-700'
+              }`}
+            >
+              {d === 'ALL' ? 'Everything' : d}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Question list */}

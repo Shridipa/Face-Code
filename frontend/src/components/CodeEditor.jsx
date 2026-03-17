@@ -8,7 +8,7 @@ loader.config({
   }
 });
 
-function CodeEditor_({ code, setCode, onCpmChange, isDark }) {
+function CodeEditor_({ code, setCode, onCpmChange, isDark, language = "python", onEditorMount }) {
   const keystrokesRef = useRef(0);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function CodeEditor_({ code, setCode, onCpmChange, isDark }) {
       <Editor
         height="100%"
         width="100%"
-        language="python"
+        language={language}
         value={code}
         onChange={handleChange}
         theme={isDark ? 'vs-dark' : 'light'}
@@ -72,6 +72,7 @@ function CodeEditor_({ code, setCode, onCpmChange, isDark }) {
           // Focus with small delay to ensure DOM is ready
           setTimeout(() => {
             editor.focus();
+            if (onEditorMount) onEditorMount(editor, monaco);
           }, 100);
         }}
       />
