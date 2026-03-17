@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, Brain, SkipForward, CheckCircle,
   Code2, Terminal as TermIcon, TrendingUp, Zap, X,
