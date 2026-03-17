@@ -69,22 +69,31 @@ class TelemetryData(BaseModel):
     problem_id: str = "easy_1"
 
 class CodeExecutionRequest(BaseModel):
-    problem_id: str
+    problem_id: Optional[str] = None
+    id: Optional[str] = None
     code: str
+    language: Optional[str] = "python"
     is_submit: bool = False
     difficulty: str = "easy"
     tags: list[str] = []
     description: str = ""  # problem HTML for dynamic test extraction
 
+    class Config:
+        extra = "allow"
+
 class LLMHintRequest(BaseModel):
     title: str
     description: str
     code: str
+    class Config:
+        extra = "allow"
 
 class ScaffoldRequest(BaseModel):
     title: str
     description: str
     language: str
+    class Config:
+        extra = "allow"
 
 # --- API Endpoints ---
 
@@ -166,8 +175,13 @@ async def run_code(req: CodeExecutionRequest):
         from code_executor import run_tests
         duration = time.time() - state.problem_start_time
         
+        # Use either id or problem_id
+        actual_id = req.id or req.problem_id
+        if not actual_id:
+            raise HTTPException(status_code=400, detail="Missing problem ID")
+
         # Run against real test cases
-        result = run_tests(req.problem_id, req.code, req.description)
+        result = run_tests(actual_id, req.code, req.description)
         success = result["success"]
 
         print(f"[RunCode] Problem: {req.problem_id} (Diff: {req.difficulty}) | Success: {success} | Runtime: {result['runtime_ms']}ms | Duration: {duration:.1f}s")
