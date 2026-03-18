@@ -94,3 +94,5 @@ Werkzeug
 wrapt
 PySocks
 python-dateutil
+PyJWT
+passlib[bcrypt]

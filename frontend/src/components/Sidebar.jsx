@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Swords, PieChart, Settings, Menu, X, Brain, Home } from 'lucide-react';
+import { LayoutDashboard, Swords, PieChart, Settings, Menu, X, Brain, Home, LogOut } from 'lucide-react';
 import FaceCodeLogo from './FaceCodeLogo';
 
 const NAV_ITEMS = [
@@ -105,26 +105,30 @@ export default function Sidebar({ open, onToggle, activeView }) {
       <div className="p-2 border-t border-fc-border flex flex-col gap-1">
         <div className="relative group">
           <button
-            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-gray-400 hover:bg-red-500 hover:bg-opacity-10 hover:text-red-400 transition-all"
-            onClick={() => navigate('/')}
-            onMouseEnter={() => !open && setHoveredItem('home')}
+            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-gray-400 hover:bg-red-500 hover:bg-opacity-10 hover:text-red-400 transition-all font-bold"
+            onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                navigate('/login');
+            }}
+            onMouseEnter={() => !open && setHoveredItem('logout')}
             onMouseLeave={() => setHoveredItem(null)}
           >
             <div className="p-1 rounded-lg">
-              <Home size={20} />
+              <LogOut size={20} />
             </div>
             {open && (
               <motion.span
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
-                className="font-medium text-sm whitespace-nowrap"
+                className="text-sm whitespace-nowrap"
               >
-                Back to Home
+                Logout
               </motion.span>
             )}
           </button>
-          <Tooltip text="Return to landing page" visible={hoveredItem === 'home'} />
+          <Tooltip text="Sign out of your account" visible={hoveredItem === 'logout'} />
         </div>
 
         <AnimatePresence>
@@ -140,8 +144,8 @@ export default function Sidebar({ open, onToggle, activeView }) {
                 <span>AI Analysis Active</span>
               </div>
               <div className="flex items-center gap-2 text-[9px] text-gray-500 font-bold uppercase tracking-widest opacity-60">
-                <span>Made by</span>
-                <span className="text-fc-primary">Shridipa</span>
+                <span>User:</span>
+                <span className="text-fc-primary truncate max-w-[100px]">{localStorage.getItem('username') || 'Shridipa'}</span>
               </div>
             </motion.div>
           )}

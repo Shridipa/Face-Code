@@ -20,6 +20,7 @@ from hint_system import RuleBasedHintSystem
 from llm_integration import LLMHintGenerator
 from database_manager import DatabaseManager
 from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content
+from auth_utils import get_password_hash, verify_password, create_access_token, decode_access_token
 
 app = FastAPI(title="FaceCode API", version="2.0")
 router = APIRouter(prefix="/api")
@@ -64,6 +65,18 @@ class SessionState:
 
 state = SessionState()
 
+# --- Auth Dependencies ---
+async def get_current_user(request: Request):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ")[1]
+    payload = decode_access_token(token)
+    if not payload:
+        return None
+    user = db.get_user_by_id(payload.get("sub"))
+    return user
+
 # --- Request Models ---
 class TelemetryData(BaseModel):
     frame_data: Optional[str] = None
@@ -98,6 +111,40 @@ class ScaffoldRequest(BaseModel):
     class Config:
         extra = "allow"
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    full_name: Optional[str] = ""
+
+# --- Auth Endpoints ---
+@router.post("/auth/register")
+async def register(req: RegisterRequest):
+    hashed = get_password_hash(req.password)
+    user_id = db.create_user(req.username, hashed, req.full_name)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    token = create_access_token({"sub": str(user_id)})
+    return {"token": token, "username": req.username}
+
+@router.post("/auth/login")
+async def login(req: LoginRequest):
+    user = db.get_user_by_username(req.username)
+    if not user or not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    token = create_access_token({"sub": str(user["id"])})
+    return {"token": token, "username": req.username}
+
+@router.get("/auth/me")
+async def get_me(user = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Don't return password hash
+    return {"id": user["id"], "username": user["username"], "full_name": user["full_name"]}
+
 @router.get("/start_session")
 async def start_session():
     # Fetch a random Easy LeetCode problem to start
@@ -123,7 +170,7 @@ async def start_session():
     return {"problem": problem}
 
 @router.post("/process_telemetry")
-async def process_telemetry(data: TelemetryData):
+async def process_telemetry(data: TelemetryData, user = Depends(get_current_user)):
     state.active_cpm = data.cpm
     state.is_inactive = data.is_inactive
     problem_id = data.problem_id
@@ -162,7 +209,8 @@ async def process_telemetry(data: TelemetryData):
     suggest_intervention = len(neg_emotions) > 6 and state.active_cpm < 10
 
     # 4. DB Logging
-    db.log_telemetry(session_id, problem_id, state.current_emotion, state.current_confidence, state.active_cpm, error_rate, is_confused)
+    user_id = user["id"] if user else None
+    db.log_telemetry(session_id, problem_id, state.current_emotion, state.current_confidence, state.active_cpm, error_rate, is_confused, user_id=user_id)
 
     return {
         "emotion": state.current_emotion,
@@ -173,7 +221,7 @@ async def process_telemetry(data: TelemetryData):
     }
 
 @router.post("/run_code")
-async def run_code(req: CodeExecutionRequest):
+async def run_code(req: CodeExecutionRequest, user = Depends(get_current_user)):
     try:
         from code_executor import run_tests
         duration = time.time() - state.problem_start_time
@@ -191,7 +239,8 @@ async def run_code(req: CodeExecutionRequest):
 
         tracker.log_execution(req.problem_id, success)
         if req.is_submit:
-            db.log_completion(session_id, req.problem_id, success, duration if success else 0, req.difficulty, req.tags)
+            user_id = user["id"] if user else None
+            db.log_completion(session_id, req.problem_id, success, duration if success else 0, req.difficulty, req.tags, user_id=user_id)
 
         return {
             "success": success,
@@ -254,8 +303,9 @@ async def generate_scaffold(req: ScaffoldRequest):
     return {"scaffold": scaffold}
 
 @router.get("/analytics_data")
-async def get_analytics():
-    return db.get_analytics()
+async def get_analytics(user = Depends(get_current_user)):
+    user_id = user["id"] if user else None
+    return db.get_analytics(user_id=user_id)
 
 
 @router.get("/questions")
