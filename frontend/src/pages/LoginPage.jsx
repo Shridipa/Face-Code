@@ -29,6 +29,16 @@ const LoginPage = () => {
         }
     };
 
+    const handleSocialLogin = async (provider) => {
+        try {
+            const res = await api.get(`/api/auth/${provider}/authorize`);
+            window.location.href = res.data.url;
+        } catch (err) {
+            console.error(err);
+            setError(`Failed to initiate ${provider} login.`);
+        }
+    };
+
     return (
         <motion.div 
             initial={{ opacity: 0 }}
@@ -129,11 +139,17 @@ const LoginPage = () => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mt-6">
-                            <button className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl py-3 transition-all">
+                            <button 
+                                onClick={() => handleSocialLogin('github')}
+                                className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl py-3 transition-all"
+                            >
                                 <Github size={20} className="text-white" />
                                 <span className="text-xs font-bold text-white tracking-wide">Github</span>
                             </button>
-                            <button className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl py-3 transition-all">
+                            <button 
+                                onClick={() => handleSocialLogin('google')}
+                                className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl py-3 transition-all"
+                            >
                                 <Chrome size={20} className="text-white" />
                                 <span className="text-xs font-bold text-white tracking-wide">Google</span>
                             </button>

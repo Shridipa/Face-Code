@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, HTTPException, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+import httpx
 from deepface import DeepFace
 
 # Project Modules
@@ -144,6 +145,92 @@ async def get_me(user = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     # Don't return password hash
     return {"id": user["id"], "username": user["username"], "full_name": user["full_name"]}
+
+# --- Social Auth Config ---
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "your_github_client_id")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "your_github_client_secret")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your_google_client_id")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "your_google_client_secret")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+@router.get("/auth/{provider}/authorize")
+async def authorize(provider: str):
+    if provider == "github":
+        url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&scope=user"
+    elif provider == "google":
+        url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={FRONTEND_URL}/auth-callback&response_type=code&scope=openid%20profile%20email"
+    else:
+        raise HTTPException(status_code=400, detail="Provider not supported")
+    return {"url": url}
+
+@router.get("/auth/callback/github")
+async def github_callback(code: str):
+    # 1. Exchange code for token
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            "https://github.com/login/oauth/access_token",
+            params={
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code
+            },
+            headers={"Accept": "application/json"}
+        )
+        data = res.json()
+        access_token = data.get("access_token")
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Failed to get access token from GitHub")
+        
+        # 2. Get user info
+        user_res = await client.get("https://api.github.com/user", headers={"Authorization": f"token {access_token}"})
+        user_data = user_res.json()
+        username = user_data.get("login")
+        
+        # 3. Map to local user
+        user = db.get_user_by_username(username)
+        if not user:
+            user_id = db.create_user(username, "oauth_placeholder", user_data.get("name", ""))
+        else:
+            user_id = user["id"]
+            
+        token = create_access_token({"sub": str(user_id)})
+        return {"token": token, "username": username}
+
+@router.get("/auth/callback/google")
+async def google_callback(code: str):
+    async with httpx.AsyncClient() as client:
+        # 1. Exchange code for token
+        res = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": f"{FRONTEND_URL}/auth-callback"
+            }
+        )
+        data = res.json()
+        id_token = data.get("id_token")
+        if not id_token:
+             raise HTTPException(status_code=400, detail="Failed to get ID token from Google")
+        
+        # 2. Decode ID token (simplistic for demo, in prod use google-auth lib)
+        # For demo, we just get profile info via access token
+        access_token = data.get("access_token")
+        profile_res = await client.get("https://www.googleapis.com/oauth2/v1/userinfo", headers={"Authorization": f"Bearer {access_token}"})
+        profile = profile_res.json()
+        email = profile.get("email")
+        
+        # 3. Map to local user
+        user = db.get_user_by_username(email)
+        if not user:
+            user_id = db.create_user(email, "oauth_placeholder", profile.get("name", ""))
+        else:
+            user_id = user["id"]
+            
+        token = create_access_token({"sub": str(user_id)})
+        return {"token": token, "username": email}
 
 @router.get("/start_session")
 async def start_session():
