@@ -46,6 +46,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"Global Exception: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "traceback": traceback.format_exc()},
+    )
+
 # --- Global State Initialization ---
 # Skip pre-load for faster server startup to avoid ERR_CONNECTION_REFUSED on boot
 # try:
