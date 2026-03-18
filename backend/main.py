@@ -22,6 +22,7 @@ from database_manager import DatabaseManager
 from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content
 
 app = FastAPI(title="FaceCode API", version="2.0")
+router = APIRouter(prefix="/api")
 
 # Enable CORS for React development
 app.add_middleware(
