@@ -24,11 +24,13 @@ from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content
 from auth_utils import get_password_hash, verify_password, create_access_token, decode_access_token
 
 app = FastAPI(title="FaceCode API", version="2.0")
-router = APIRouter()
+print("FASTAPI APP CREATED, STARTING ROUTE REGISTRATION...")
 
-@app.get("/")
-async def root():
-    return {"status": "ok", "message": "FaceCode API is running"}
+@app.get("/ping")
+async def ping():
+    return {"ping": "pong"}
+
+router = APIRouter()
 
 # Enable CORS
 ALLOWED_ORIGINS = [
