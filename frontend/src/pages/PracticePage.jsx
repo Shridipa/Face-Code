@@ -248,7 +248,7 @@ export default function PracticePage() {
     setOutStatus('idle');
     setTestResults([]);
     try {
-      const r = await api.post('/api/run_code', {
+      const r = await api.post('/run_code', {
         code, language, titleSlug: problem.titleSlug, id: problem.id
       });
       setOutput(r.data.output || (r.data.success ? 'Success!' : 'Failed.'));
@@ -285,7 +285,7 @@ export default function PracticePage() {
     setOutput('📡 Submitting and syncing results...');
     setOutStatus('idle');
     try {
-      const r = await api.post('/api/run_code', {
+      const r = await api.post('/run_code', {
         code, language, titleSlug: problem.titleSlug, id: problem.id,
         metrics: { cpm, emotion, confidence },
         is_submit: true
