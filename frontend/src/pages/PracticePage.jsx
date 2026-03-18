@@ -110,7 +110,7 @@ export default function PracticePage() {
 
   const fetchByDifficulty = useCallback(async (diff) => {
     try {
-      const res = await api.get('/api/questions', { params: { difficulty: diff, limit: 10 } });
+      const res = await api.get('/questions', { params: { difficulty: diff, limit: 10 } });
       const list = res.data.questions;
       if (list && list.length > 0) {
         const rand = list[Math.floor(Math.random() * list.length)];
@@ -124,7 +124,7 @@ export default function PracticePage() {
 
   const skipProblem = useCallback(async () => {
     try {
-      const res = await api.get('/api/questions');
+      const res = await api.get('/questions');
       const list = res.data.questions;
       if (list && list.length > 0) {
         const rand = list[Math.floor(Math.random() * list.length)];
@@ -161,7 +161,7 @@ export default function PracticePage() {
   useEffect(() => {
     const fetchRandom = async () => {
       try {
-        const res = await api.get('/api/questions');
+        const res = await api.get('/questions');
         const list = res.data.questions;
         if (list && list.length > 0) {
           const rand = list[Math.floor(Math.random() * list.length)];
@@ -189,7 +189,7 @@ export default function PracticePage() {
       }
 
       try {
-        const res = await api.post('/api/generate_scaffold', {
+        const res = await api.post('/generate_scaffold', {
           title: problem.title,
           description: problem.description,
           language: language
@@ -315,7 +315,7 @@ export default function PracticePage() {
   const askMentor = async () => {
     if (!problem) return;
     try {
-      const r = await api.post('/api/request_llm_hint', {
+      const r = await api.post('/request_llm_hint', {
         title: problem.title, description: problem.description, code
       });
       setHints(h => [...h, r.data.hint]);
