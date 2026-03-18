@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import httpx
-from deepface import DeepFace
+# from deepface import DeepFace  # Moved to local scope for faster startup
 
 # Project Modules
 from adaptive_engine import AdaptiveEngine
@@ -301,6 +301,8 @@ async def process_telemetry(data: TelemetryData, user = Depends(get_current_user
             nparr = np.frombuffer(img_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
+            # Lazy import to speed up server boot
+            from deepface import DeepFace
             result = DeepFace.analyze(img, actions=['emotion'], enforce_detection=False)
             res_dict = result[0] if isinstance(result, list) else result
             emotion_found = res_dict.get('dominant_emotion', 'neutral')
