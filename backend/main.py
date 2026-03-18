@@ -30,10 +30,17 @@ router = APIRouter()
 async def root():
     return {"status": "ok", "message": "FaceCode API is running"}
 
-# Enable CORS for React development
+# Enable CORS
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://face-code-ruby.vercel.app",
+    "https://face-code-shridipa.vercel.app", # Potential variant
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to your frontend URL
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
