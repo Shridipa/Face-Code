@@ -24,7 +24,11 @@ from leetcode_fetcher import fetch_leetcode_questions, fetch_question_content
 from auth_utils import get_password_hash, verify_password, create_access_token, decode_access_token
 
 app = FastAPI(title="FaceCode API", version="2.0")
-router = APIRouter(prefix="/api")
+router = APIRouter()
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "FaceCode API is running"}
 
 # Enable CORS for React development
 app.add_middleware(
@@ -431,8 +435,12 @@ async def get_question_details(title_slug: str):
         print(f"Error fetching question details for {title_slug}: {e}")
         raise HTTPException(status_code=502, detail=str(e))
 
-# Include router
-app.include_router(router)
+# Include router with prefix
+app.include_router(router, prefix="/api")
+
+@router.get("/health")
+async def health():
+    return {"status": "ok", "router": "api"}
 
 if __name__ == "__main__":
     import uvicorn

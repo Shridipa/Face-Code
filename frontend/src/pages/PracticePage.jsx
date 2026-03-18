@@ -86,7 +86,7 @@ export default function PracticePage() {
     setHasRun(false);
     setRuntimeMs(null);
     try {
-      const res = await api.get(`/api/question/${q.titleSlug}`);
+      const res = await api.get(`/question/${q.titleSlug}`);
       const fullData = res.data;
       setProblem({
         ...q,

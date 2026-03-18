@@ -18,7 +18,7 @@ const LoginPage = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.post('/api/auth/login', { username, password });
+            const res = await api.post('/auth/login', { username, password });
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('username', res.data.username);
             navigate('/practice');
@@ -31,7 +31,7 @@ const LoginPage = () => {
 
     const handleSocialLogin = async (provider) => {
         try {
-            const res = await api.get(`/api/auth/${provider}/authorize`);
+            const res = await api.get(`/auth/${provider}/authorize`);
             window.location.href = res.data.url;
         } catch (err) {
             console.error(err);

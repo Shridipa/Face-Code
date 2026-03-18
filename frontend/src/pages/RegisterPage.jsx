@@ -19,7 +19,7 @@ const RegisterPage = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.post('/api/auth/register', { 
+            const res = await api.post('/auth/register', { 
                 username, 
                 password, 
                 full_name: fullName 
@@ -36,7 +36,7 @@ const RegisterPage = () => {
 
     const handleSocialLogin = async (provider) => {
         try {
-            const res = await api.get(`/api/auth/${provider}/authorize`);
+            const res = await api.get(`/auth/${provider}/authorize`);
             window.location.href = res.data.url;
         } catch (err) {
             console.error(err);
