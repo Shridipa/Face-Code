@@ -59,6 +59,8 @@ class SessionState:
     current_emotion = "neutral"
     current_confidence = 0.50
     problem_start_time = time.time()
+    recent_emotions = [] # Keep track of last N emotions
+    last_success = False
 
 state = SessionState()
 
@@ -150,22 +152,24 @@ async def process_telemetry(data: TelemetryData):
 
     state.current_emotion = emotion_found
     
-    # 2. Logic Evaluation
-    error_rate = tracker.get_error_rate(problem_id)
-    state.current_confidence = calculate_confidence_score(state.current_emotion, state.active_cpm, error_rate, state.is_inactive)
+    # 3. Intervention Logic (Stress/Frustration detection)
+    state.recent_emotions.append(emotion_found)
+    if len(state.recent_emotions) > 10:
+        state.recent_emotions.pop(0)
     
-    is_confused = state.current_emotion in ['angry', 'sad', 'stressed', 'confused', 'fear']
-    hint_system.update_state(is_confused, state.is_inactive)
-    auto_hint = hint_system.check_for_hint(problem_id)
-    
-    # 3. DB Logging
+    # Suggest intervention if > 60% of recent emotions are negative
+    neg_emotions = [e for e in state.recent_emotions if e in ['angry', 'sad', 'fear', 'disgust']]
+    suggest_intervention = len(neg_emotions) > 6 and state.active_cpm < 10
+
+    # 4. DB Logging
     db.log_telemetry(session_id, problem_id, state.current_emotion, state.current_confidence, state.active_cpm, error_rate, is_confused)
 
     return {
         "emotion": state.current_emotion,
         "confidence": state.current_confidence,
         "error_rate": error_rate,
-        "auto_hint": auto_hint
+        "auto_hint": auto_hint,
+        "suggest_intervention": suggest_intervention
     }
 
 @router.post("/run_code")
@@ -195,6 +199,7 @@ async def run_code(req: CodeExecutionRequest):
             "test_results": result.get("test_results", []),
             "runtime_ms": result.get("runtime_ms", 0),
             "has_test_cases": result.get("has_test_cases", False),
+            "suggest_levelup": success and req.difficulty.lower() in ['easy', 'medium'] # Suggest if passed easy/med
         }
     except Exception as e:
         print(f"[RunCode] CRITICAL ERROR: {e}")

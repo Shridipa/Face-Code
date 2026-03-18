@@ -12,6 +12,7 @@ import QuestionPanel from '../components/QuestionPanel';
 import CodeEditor from '../components/CodeEditor';
 import TestResultPanel from '../components/TestResultPanel';
 import InterventionModal from '../components/InterventionModal';
+import LevelUpModal from '../components/LevelUpModal';
 import AIInsightPanel from '../components/AIInsightPanel';
 import FocusRecoveryPopup from '../components/FocusRecoveryPopup';
 import { useOutletContext } from 'react-router-dom';
@@ -63,6 +64,7 @@ export default function PracticePage() {
   const [showHintCard, setShowHintCard] = useState(false);
   const [negativeTimer, setNegativeTimer] = useState(0);
   const [showIntervention, setShowIntervention] = useState(false);
+  const [showLevelUp, setShowLevelUp]           = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState('console'); // 'console' | 'hints'
 
   // New: AI Coach state
@@ -104,7 +106,21 @@ export default function PracticePage() {
     }
     setHints([]);
     setShowPanel(false);
-  }, []); // ✅ Removed language dependency
+  }, []);
+
+  const fetchByDifficulty = useCallback(async (diff) => {
+    try {
+      const res = await api.get('/api/questions', { params: { difficulty: diff, limit: 10 } });
+      const list = res.data.questions;
+      if (list && list.length > 0) {
+        const rand = list[Math.floor(Math.random() * list.length)];
+        handleSelectQuestion(rand);
+      }
+    } catch (err) {
+      console.error("Failed to fetch by difficulty:", err);
+      addToast('error', 'Could not find a problem for that level.', 'Library Error');
+    }
+  }, [handleSelectQuestion, addToast]);
 
   const skipProblem = useCallback(async () => {
     try {
@@ -131,10 +147,16 @@ export default function PracticePage() {
       setEmotionHistory(h => [...h.slice(-9), data.emotion]);
     }
     if (data.auto_hint) setHints(h => h.includes(data.auto_hint) ? h : [...h, data.auto_hint]);
+    
+    // Intervention logic from backend
+    if (data.suggest_intervention && !showIntervention) {
+      setShowIntervention(true);
+    }
+
     const isNegative = ['angry', 'fear', 'sad', 'stressed', 'confused'].includes(data.emotion);
     if (isNegative) setNegativeTimer(t => t + 2.5);
     else setNegativeTimer(0);
-  }, []);
+  }, [showIntervention]);
 
   useEffect(() => {
     const fetchRandom = async () => {
@@ -275,9 +297,15 @@ export default function PracticePage() {
       if (r.data.success) {
         setPrevMetrics({ title: problem.title, cpm, emotion, time: `${r.data.runtime_ms ?? '?'}ms` });
         addToast('success', `${problem.title} solved!`, '🎉 Submitted');
-        skipProblem();
+        
+        if (r.data.suggest_levelup) {
+          setShowLevelUp(true);
+        } else {
+          skipProblem();
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error("Submission error:", err);
       setOutput('⚠️  Submission failed.');
       setOutStatus('error');
       addToast('error', 'Submission process failed.', 'Network Error');
@@ -588,8 +616,20 @@ export default function PracticePage() {
 
         {showIntervention && (
           <InterventionModal
-            onAccept={() => { setShowIntervention(false); setActiveDiff('easy'); skipProblem(); }}
+            onAccept={() => { 
+                setShowIntervention(false); 
+                const easier = problem.difficulty.toLowerCase() === 'hard' ? 'medium' : 'easy';
+                fetchByDifficulty(easier); 
+            }}
             onDecline={() => setShowIntervention(false)}
+          />
+        )}
+
+        {showLevelUp && (
+          <LevelUpModal
+            currentDifficulty={problem.difficulty}
+            onAccept={(next) => { setShowLevelUp(false); fetchByDifficulty(next); }}
+            onDecline={() => { setShowLevelUp(false); skipProblem(); }}
           />
         )}
 
