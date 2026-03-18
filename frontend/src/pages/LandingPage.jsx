@@ -316,8 +316,9 @@ export default function LandingPage() {
         </motion.button>
       </motion.section>
 
-      <footer className="landing-footer">
+      <footer className="landing-footer flex flex-col items-center gap-1">
         <p>© 2026 FaceCode. Emotion-Aware AI Coding Platform.</p>
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1 opacity-70">Made with ❤️ by Shridipa</p>
       </footer>
     </div>
   );

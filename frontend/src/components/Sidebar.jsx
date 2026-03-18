@@ -133,10 +133,16 @@ export default function Sidebar({ open, onToggle, activeView }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center gap-2 px-3 py-2 text-[10px] uppercase tracking-wider font-bold text-fc-accent"
+              className="px-3 pb-2 pt-1 space-y-2"
             >
-              <Brain size={12} className="animate-pulse" />
-              <span>AI Analysis Active</span>
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold text-fc-accent">
+                <Brain size={12} className="animate-pulse" />
+                <span>AI Analysis Active</span>
+              </div>
+              <div className="flex items-center gap-2 text-[9px] text-gray-500 font-bold uppercase tracking-widest opacity-60">
+                <span>Made by</span>
+                <span className="text-fc-primary">Shridipa</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
